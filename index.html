@@ -158,6 +158,26 @@
   .comm-entry { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .comm-entry:last-child { border-bottom: none; }
   .comm-entry .meta { color: var(--text-muted); font-size: 11px; }
+
+  /* FORM BASICS (was missing — every form in the app was rendering unstyled) */
+  .form-group { margin-bottom: 13px; }
+  label.field-label { font-size: 13px; font-weight: 500; color: #444; display: block; margin-bottom: 5px; }
+  input[type="text"], input[type="number"], input[type="date"], input[type="time"], input[type="email"],
+  select, textarea {
+    width: 100%; padding: 11px 13px; border: 1.5px solid #d0d7de; border-radius: 9px;
+    font-size: 16px; font-family: inherit; background: white; color: var(--text);
+    appearance: none; -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,82,118,0.12); }
+  textarea { resize: vertical; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+  @media (max-width: 380px) {
+    .row2 { grid-template-columns: 1fr; }
+  }
+
+  /* SECTION SUBHEADS — used to break up long forms into scannable groups */
+  .subhead { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 700; margin: 16px 0 8px; }
+  .subhead:first-child { margin-top: 0; }
 </style>
 </head>
 <body>
@@ -459,6 +479,11 @@ const TAB_RENDERERS = {
   settings: renderSettingsTab
 };
 function switchTab(t) {
+  // Tapping a tab bar icon always resets that tab back to its top-level list view —
+  // otherwise a half-filled "add" form left open earlier would reappear instead of the list.
+  formOpen = false;
+  if (t === 'customers') customersView = 'list';
+  if (t === 'jobs') jobsView = 'list';
   currentTab = t;
   document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.scroll-content').forEach(el => el.classList.add('hidden'));
@@ -585,6 +610,26 @@ async function uploadJobPhoto(jobId, file) {
     toast('❌ Photo upload failed');
   }
 }
+async function uploadCustomerPhoto(customerId, file) {
+  try {
+    let blob;
+    try { blob = await compressImage(file); } catch { blob = file; }
+    const fd = new FormData();
+    fd.append('file', blob);
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.secure_url) throw new Error(data.error?.message || 'No URL returned');
+    await db.collection('customers').doc(customerId).update({
+      photos: firebase.firestore.FieldValue.arrayUnion(data.secure_url),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('Photo added ✓');
+  } catch(e) {
+    console.error('Customer photo upload error:', e.message);
+    toast('❌ Photo upload failed');
+  }
+}
 
 // ── DISPATCH TAB ──
 function renderDispatchTab() {
@@ -678,7 +723,7 @@ function customersListHTML() {
     .sort((a,b) => (a.name||'').localeCompare(b.name||''));
   return `
     <div class="search-bar"><input type="text" placeholder="Search customers..." value="${esc(jobSearchCust||'')}" oninput="jobSearchCust=this.value;renderCustomersTab()"></div>
-    <button class="pill-btn solid" style="width:100%;margin-bottom:12px;" onclick="openAddCustomer()">+ Add Customer</button>
+    <button class="pill-btn solid" style="width:100%;margin-bottom:12px;" onclick="openAddCustomer()">+ New Customer</button>
     ${list.length === 0 ? `<div class="card placeholder">No customers yet.</div>` : list.map(c => {
       const lastJob = jobs.filter(j => j.customerId === c._id).sort((a,b) => (b.scheduledDate||'').localeCompare(a.scheduledDate||''))[0];
       return `<div class="list-item" onclick="openCustomerDetail('${c._id}')">
@@ -736,6 +781,7 @@ function customerFormHTML(c) {
     </div>
     <div class="card">
       <h2>Property Profile</h2>
+      <div class="subhead">Plumbing</div>
       <div class="row2">
         <div class="form-group"><label class="field-label">Water Line Type</label>
           <select id="custWaterLine"><option ${p.waterLineType==='Municipal'?'selected':''}>Municipal</option><option ${p.waterLineType==='Well'?'selected':''}>Well</option><option ${p.waterLineType==='Other'?'selected':''}>Other</option></select></div>
@@ -748,15 +794,19 @@ function customerFormHTML(c) {
         <div class="form-group"><label class="field-label">Water Heater Age (yrs)</label><input id="custWHAge" type="number" value="${esc(p.waterHeaterAge||'')}"></div>
       </div>
       <div class="row2">
-        <div class="form-group"><label class="field-label">Last Pressure Reading</label><input id="custPressure" type="text" value="${esc(p.pressureReading||'')}"></div>
+        <div class="form-group"><label class="field-label">Last Pressure Reading</label><input id="custPressure" type="text" value="${esc(p.pressureReading||'')}" placeholder="e.g. 60 psi"></div>
         <div class="form-group"><label class="field-label">Last Service Date</label><input id="custLastService" type="date" value="${esc(p.lastServiceDate||'')}"></div>
       </div>
       <div class="form-group"><label class="field-label">Permit History</label><input id="custPermits" type="text" value="${esc(p.permitHistory||'')}"></div>
+
+      <div class="subhead">Irrigation</div>
       <div class="row2">
         <div class="form-group"><label class="field-label">Irrigation Zones</label><input id="custZones" type="number" value="${esc(p.irrigationZones||'')}"></div>
         <div class="form-group"><label class="field-label">Controller Type</label><input id="custController" type="text" value="${esc(p.irrigationControllerType||'')}"></div>
       </div>
-      <div class="form-group"><label class="field-label">Watch List / Notes</label><input id="custWatch" type="text" value="${esc(p.watchList||'')}"></div>
+
+      <div class="subhead">Watch List</div>
+      <div class="form-group"><input id="custWatch" type="text" value="${esc(p.watchList||'')}" placeholder="e.g. aging valve, flag for next visit"></div>
     </div>
     <button class="pill-btn solid" style="width:100%;" onclick="saveCustomer('${c._id||''}')">Save Customer</button>
     ${c._id ? `<button class="pill-btn" style="width:100%;border-color:var(--danger);color:var(--danger);" onclick="deleteCustomer('${c._id}')">Delete Customer</button>` : ''}
@@ -789,7 +839,7 @@ function saveCustomer(id) {
   formOpen = false;
   const ref = id ? db.collection('customers').doc(id) : db.collection('customers').doc();
   const isNew = !id;
-  (isNew ? ref.set({ ...payload, commLog: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() }) : ref.update(payload))
+  (isNew ? ref.set({ ...payload, commLog: [], photos: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() }) : ref.update(payload))
     .then(() => { toast('Customer saved ✓'); openCustomerDetail(ref.id); })
     .catch(e => toast('❌ ' + e.message));
 }
@@ -821,6 +871,13 @@ function customerDetailHTML(id) {
       <div class="list-item-sub">Pressure: ${esc(p.pressureReading||'—')} · Last service: ${p.lastServiceDate ? fmtDate(p.lastServiceDate) : '—'}</div>
       <div class="list-item-sub">Irrigation zones: ${esc(p.irrigationZones||'—')} · Controller: ${esc(p.irrigationControllerType||'—')}</div>
       ${p.watchList ? `<div class="list-item-sub" style="color:var(--danger);margin-top:6px;">⚠️ ${esc(p.watchList)}</div>` : ''}
+    </div>
+    <div class="card">
+      <h2>Photos</h2>
+      <div class="photo-grid">
+        ${(c.photos||[]).map(url => `<img src="${esc(url)}" onclick="window.open('${esc(url)}','_blank')">`).join('')}
+        <label class="add-photo-tile">+<input type="file" accept="image/*" capture="environment" class="hidden" onchange="if(this.files[0]) uploadCustomerPhoto('${id}', this.files[0])"></label>
+      </div>
     </div>
     <div class="card">
       <h2>Jobs (${custJobs.length})</h2>
@@ -1023,7 +1080,7 @@ function saveJob() {
     db.collection('customers').add({
       name: customerName, address: customerAddress,
       phone: newCustomerExtras.phone, email: newCustomerExtras.email,
-      notes: '', property: newCustomerExtras.property, commLog: [],
+      notes: '', property: newCustomerExtras.property, commLog: [], photos: [],
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(ref => proceed(ref.id)).catch(e => toast('❌ ' + e.message));
   } else {
@@ -1569,7 +1626,8 @@ function openInvoiceFromReports(id) {
   activeInvoiceId = id;
   jobsView = 'invoice';
   formOpen = false;
-  switchTab('jobs');
+  renderJobsTab();
+  switchTabUI('jobs');
 }
 
 // ── SETTINGS TAB ──
