@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1A5276">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Leo's Dispatch">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Leo's Dispatch</title>
+<style>
+  :root {
+    --blue: #1A5276; --blue-dark: #154360; --blue-light: #D6EAF8;
+    --green: #1E8449; --green-light: #EAFAF1;
+    --purple: #8E44AD; --purple-light: #F5EEF8;
+    --danger: #E74C3C; --text: #1a1a1a; --text-muted: #888;
+    --border: #e0e0e0; --white: #fff; --radius: 12px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: var(--text); }
+
+  .hidden { display: none !important; }
+
+  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; background: #f0f2f5; }
+
+  /* PIN */
+  #pinScreen { background: var(--blue); align-items: center; justify-content: center; }
+  .pin-logo { font-size: 48px; margin-bottom: 8px; }
+  .pin-title { color: white; font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .pin-sub { color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 40px; }
+  .pin-dots { display: flex; gap: 16px; margin-bottom: 32px; }
+  .pin-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.6); background: transparent; transition: background 0.15s; }
+  .pin-dot.filled { background: white; border-color: white; }
+  .pin-dot.error { background: var(--danger); border-color: var(--danger); }
+  .pin-pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 14px; }
+  .pin-key { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.15); border: none; color: white; font-size: 24px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; }
+  .pin-key:active { background: rgba(255,255,255,0.35); transform: scale(0.94); }
+  .pin-key.del { font-size: 20px; }
+  .pin-key.empty { background: transparent; pointer-events: none; }
+  .pin-error { color: rgba(255,100,100,0.9); font-size: 13px; margin-top: -20px; margin-bottom: 8px; height: 18px; }
+
+  /* AUTH / WHO-AM-I */
+  #authScreen, #whoScreen { background: var(--blue); align-items: center; justify-content: center; gap: 20px; }
+  .auth-logo { font-size: 48px; }
+  .auth-title { color: white; font-size: 22px; font-weight: 700; }
+  .auth-sub { color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 10px; }
+  .btn-google { background: white; color: var(--text); border: none; border-radius: 10px; padding: 13px 24px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+  .who-grid { display: flex; gap: 18px; }
+  .who-card { width: 130px; padding: 22px 10px; background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.3); border-radius: var(--radius); color: white; text-align: center; cursor: pointer; font-weight: 600; font-size: 16px; }
+  .who-card:active { background: rgba(255,255,255,0.25); }
+  .who-card .emoji { font-size: 30px; display: block; margin-bottom: 8px; }
+
+  /* HEADER */
+  .app-header { background: var(--blue); color: white; padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top,0px)); flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; }
+  .app-header h1 { font-size: 17px; font-weight: 700; }
+  .app-header span { font-size: 12px; opacity: 0.75; display: block; margin-top: 1px; }
+  .header-actions { display: flex; gap: 8px; }
+  .icon-btn { background: rgba(255,255,255,0.15); border: none; color: white; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+  .icon-btn:active { background: rgba(255,255,255,0.3); }
+
+  /* TABS */
+  .tab-bar { display: flex; background: white; border-bottom: 1px solid var(--border); flex-shrink: 0; overflow-x: auto; }
+  .tab { flex: 1; padding: 11px 4px; text-align: center; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; transition: all 0.15s; white-space: nowrap; }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  /* SCROLL */
+  .scroll-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 14px calc(14px + var(--safe-bottom)); }
+
+  /* CARDS */
+  .card { background: white; border-radius: var(--radius); padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+  .card h2 { font-size: 15px; font-weight: 600; color: var(--blue); margin-bottom: 14px; }
+  .card.placeholder { text-align: center; color: var(--text-muted); padding: 40px 16px; }
+
+  /* QUICK ACTIONS */
+  .quick-actions { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .quick-actions button { flex: 1; min-width: 110px; padding: 11px 8px; border-radius: 10px; border: none; background: var(--blue); color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .quick-actions button:active { background: var(--blue-dark); }
+
+  /* BADGES */
+  .trade-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; color: white; }
+  .trade-badge.plumbing { background: var(--blue); }
+  .trade-badge.irrigation { background: var(--green); }
+  .trade-badge.combined { background: var(--purple); }
+
+  #toast { position: fixed; bottom: calc(20px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: #222; color: white; padding: 11px 18px; border-radius: 10px; font-size: 14px; opacity: 0; pointer-events: none; transition: all 0.25s; z-index: 999; max-width: 88%; text-align: center; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pinScreen" class="screen">
+  <div class="pin-logo">🔧🌿</div>
+  <div class="pin-title">Leo's Dispatch</div>
+  <div class="pin-sub">Leo's Plumbing &amp; Irrigation</div>
+  <div class="pin-dots" id="pinDots">
+    <div class="pin-dot"></div><div class="pin-dot"></div>
+    <div class="pin-dot"></div><div class="pin-dot"></div>
+  </div>
+  <div class="pin-error" id="pinError"></div>
+  <div class="pin-pad">
+    <button class="pin-key" onclick="pinKey('1')">1</button>
+    <button class="pin-key" onclick="pinKey('2')">2</button>
+    <button class="pin-key" onclick="pinKey('3')">3</button>
+    <button class="pin-key" onclick="pinKey('4')">4</button>
+    <button class="pin-key" onclick="pinKey('5')">5</button>
+    <button class="pin-key" onclick="pinKey('6')">6</button>
+    <button class="pin-key" onclick="pinKey('7')">7</button>
+    <button class="pin-key" onclick="pinKey('8')">8</button>
+    <button class="pin-key" onclick="pinKey('9')">9</button>
+    <button class="pin-key empty"></button>
+    <button class="pin-key" onclick="pinKey('0')">0</button>
+    <button class="pin-key del" onclick="pinDel()">⌫</button>
+  </div>
+</div>
+
+<!-- GOOGLE AUTH SCREEN -->
+<div id="authScreen" class="screen hidden">
+  <div class="auth-logo">🔧🌿</div>
+  <div class="auth-title">Leo's Dispatch</div>
+  <div class="auth-sub">Sign in to continue</div>
+  <button class="btn-google" onclick="signIn()">Sign in with Google</button>
+</div>
+
+<!-- WHO AM I SCREEN -->
+<div id="whoScreen" class="screen hidden">
+  <div class="auth-title">Who's working today?</div>
+  <div class="who-grid">
+    <div class="who-card" onclick="chooseUser('Jake')"><span class="emoji">🔧</span>Jake</div>
+    <div class="who-card" onclick="chooseUser('Doug')"><span class="emoji">🌿</span>Doug</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appScreen" class="screen hidden">
+  <div class="app-header">
+    <div>
+      <h1 id="headerTitle">🔧 Leo's Dispatch</h1>
+      <span id="headerSub">Leo's Plumbing &amp; Irrigation</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="switchTab('settings')">⚙️</button>
+      <button class="icon-btn" onclick="lockApp()">🔒</button>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" id="tab-btn-dispatch" onclick="switchTab('dispatch')">Dispatch</div>
+    <div class="tab" id="tab-btn-jobs" onclick="switchTab('jobs')">Jobs</div>
+    <div class="tab" id="tab-btn-customers" onclick="switchTab('customers')">Customers</div>
+    <div class="tab" id="tab-btn-mileage" onclick="switchTab('mileage')">Mileage</div>
+    <div class="tab" id="tab-btn-reports" onclick="switchTab('reports')">Reports</div>
+    <div class="tab" id="tab-btn-settings" onclick="switchTab('settings')">Settings</div>
+  </div>
+
+  <!-- DISPATCH (Home Dashboard) -->
+  <div id="tab-dispatch" class="scroll-content">
+    <div class="card">
+      <h2 id="greeting">Good morning</h2>
+      <div class="quick-actions">
+        <button onclick="toast('Job builder coming soon')">+ New Job</button>
+        <button onclick="switchTab('mileage')">+ Log Mileage</button>
+        <button onclick="switchTab('customers')">+ Add Customer</button>
+      </div>
+    </div>
+    <div class="card placeholder">
+      <div style="font-size:32px;margin-bottom:8px;">📋</div>
+      Today's jobs will appear here once the Jobs module is built.
+    </div>
+  </div>
+
+  <!-- JOBS -->
+  <div id="tab-jobs" class="scroll-content hidden">
+    <div class="card placeholder">
+      <div style="font-size:32px;margin-bottom:8px;">🛠️</div>
+      Jobs module — coming next.
+    </div>
+  </div>
+
+  <!-- CUSTOMERS -->
+  <div id="tab-customers" class="scroll-content hidden">
+    <div class="card placeholder">
+      <div style="font-size:32px;margin-bottom:8px;">👤</div>
+      Customers module — coming next.
+    </div>
+  </div>
+
+  <!-- MILEAGE -->
+  <div id="tab-mileage" class="scroll-content hidden">
+    <div class="card placeholder">
+      <div style="font-size:32px;margin-bottom:8px;">🚚</div>
+      Mileage module — coming next.
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div id="tab-reports" class="scroll-content hidden">
+    <div class="card placeholder">
+      <div style="font-size:32px;margin-bottom:8px;">📊</div>
+      Reports module — coming next.
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="tab-settings" class="scroll-content hidden">
+    <div class="card">
+      <h2>Account</h2>
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:10px;">Signed in as <strong id="settingsUserName"></strong></div>
+      <div class="quick-actions">
+        <button onclick="switchUser()">Switch User</button>
+        <button onclick="lockApp()">Lock App</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>App Info</h2>
+      <div style="font-size:13px;color:var(--text-muted);">Leo's Dispatch v0.1 (scaffold)<br>Leo's Plumbing and Irrigation</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+// ── FIREBASE (same project as Leo's Receipt Tracker) ──
+firebase.initializeApp({
+  apiKey: "AIzaSyCIlJ-tmSYj1hDYvZQK2td9PzotmmuibEg",
+  authDomain: "leo-s-receipts.firebaseapp.com",
+  projectId: "leo-s-receipts",
+  storageBucket: "leo-s-receipts.firebasestorage.app",
+  messagingSenderId: "56489776115",
+  appId: "1:56489776115:web:d86fa282ccbbd3afe97886"
+});
+const db = firebase.firestore();
+const auth = firebase.auth();
+db.enablePersistence().catch(() => {});
+
+// ── CONSTANTS ──
+const PIN = '1210';
+
+// ── STATE ──
+let pinEntry = '';
+let currentTab = 'dispatch';
+let currentUserName = null; // 'Jake' | 'Doug'
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+// ── PIN ──
+function pinKey(digit) {
+  if (pinEntry.length >= 4) return;
+  pinEntry += digit;
+  updateDots();
+  if (pinEntry.length === 4) setTimeout(processPin, 120);
+}
+function pinDel() {
+  pinEntry = pinEntry.slice(0, -1);
+  updateDots();
+  document.getElementById('pinError').textContent = '';
+}
+function updateDots(state) {
+  document.querySelectorAll('.pin-dot').forEach((d, i) => {
+    d.classList.toggle('filled', i < pinEntry.length);
+    d.classList.toggle('error', state === 'error');
+  });
+}
+function processPin() {
+  if (pinEntry === PIN) {
+    document.getElementById('pinScreen').classList.add('hidden');
+    pinEntry = '';
+    updateDots();
+    afterPin();
+  } else {
+    updateDots('error');
+    document.getElementById('pinError').textContent = 'Incorrect PIN — try again';
+    setTimeout(() => {
+      pinEntry = '';
+      updateDots();
+      document.getElementById('pinError').textContent = '';
+    }, 1000);
+  }
+}
+function lockApp() {
+  ['appScreen', 'authScreen', 'whoScreen'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  document.getElementById('pinScreen').classList.remove('hidden');
+  pinEntry = '';
+  updateDots();
+}
+
+// ── AFTER PIN: decide auth / who-am-i / app ──
+function afterPin() {
+  if (auth.currentUser) {
+    showWhoOrApp();
+  } else {
+    document.getElementById('authScreen').classList.remove('hidden');
+  }
+}
+
+function signIn() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider)
+    .then(() => {
+      document.getElementById('authScreen').classList.add('hidden');
+      showWhoOrApp();
+    })
+    .catch(err => toast('❌ Sign-in failed: ' + err.message));
+}
+
+function showWhoOrApp() {
+  currentUserName = localStorage.getItem('leosDispatchUser');
+  if (currentUserName === 'Jake' || currentUserName === 'Doug') {
+    enterApp();
+  } else {
+    document.getElementById('whoScreen').classList.remove('hidden');
+  }
+}
+
+function chooseUser(name) {
+  currentUserName = name;
+  localStorage.setItem('leosDispatchUser', name);
+  document.getElementById('whoScreen').classList.add('hidden');
+  const email = auth.currentUser ? auth.currentUser.email : null;
+  db.collection('users').doc(name).set({
+    name,
+    role: name === 'Jake' ? 'plumbing' : 'irrigation',
+    email,
+    lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true }).catch(() => {});
+  enterApp();
+}
+
+function switchUser() {
+  localStorage.removeItem('leosDispatchUser');
+  document.getElementById('appScreen').classList.add('hidden');
+  document.getElementById('whoScreen').classList.remove('hidden');
+}
+
+function enterApp() {
+  document.getElementById('appScreen').classList.remove('hidden');
+  const isJake = currentUserName === 'Jake';
+  document.getElementById('headerTitle').textContent = isJake ? '🔧 Leo\'s Dispatch' : '🌿 Leo\'s Dispatch';
+  document.getElementById('greeting').textContent = isJake ? 'Good morning, Jake 🔧' : 'Good morning, Doug 🌿';
+  document.getElementById('settingsUserName').textContent = currentUserName;
+}
+
+// ── TABS ──
+function switchTab(t) {
+  currentTab = t;
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.scroll-content').forEach(el => el.classList.add('hidden'));
+  document.getElementById('tab-btn-' + t).classList.add('active');
+  document.getElementById('tab-' + t).classList.remove('hidden');
+}
+
+// ── SERVICE WORKER ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
