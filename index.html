@@ -915,7 +915,11 @@ function jobFormHTML(j) {
         <label class="field-label">Customer</label>
         ${jobNewCustomerMode ? `
           <input id="jobNewCustName" type="text" placeholder="New customer name" style="margin-bottom:8px;">
-          <input id="jobNewCustAddress" type="text" placeholder="Address">
+          <input id="jobNewCustAddress" type="text" placeholder="Address" style="margin-bottom:8px;">
+          <div class="row2" style="margin-bottom:8px;">
+            <input id="jobNewCustPhone" type="text" placeholder="Phone">
+            <input id="jobNewCustEmail" type="text" placeholder="Email">
+          </div>
           <div style="font-size:12px;color:var(--blue);cursor:pointer;margin-top:6px;" onclick="jobNewCustomerMode=false;renderJobsTab()">← Choose existing customer instead</div>
         ` : `
           <select id="jobCustomerId" onchange="document.getElementById('jobCustomerAddr').value = (this.options[this.selectedIndex].dataset.addr||'')">
@@ -941,15 +945,48 @@ function jobFormHTML(j) {
       </div>
       <div class="form-group"><label class="field-label">Notes</label><textarea id="jobNotes" rows="2" style="width:100%;padding:10px;border:1.5px solid #d0d7de;border-radius:9px;"></textarea></div>
     </div>
+    ${jobNewCustomerMode ? `
+    <div class="card">
+      <h2>New Customer — Property Profile <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(optional)</span></h2>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Water Line Type</label>
+          <select id="jobNewCustWaterLine"><option>Municipal</option><option>Well</option><option>Other</option></select></div>
+        <div class="form-group"><label class="field-label">Pipe Type</label>
+          <select id="jobNewCustPipeType">${['Copper','PEX','Iron','Kitec','CPVC','Other'].map(o=>`<option>${o}</option>`).join('')}</select></div>
+      </div>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Water Heater Type</label>
+          <select id="jobNewCustWHType">${['Tank','Tankless','Heat Pump','None'].map(o=>`<option>${o}</option>`).join('')}</select></div>
+        <div class="form-group"><label class="field-label">Water Heater Age (yrs)</label><input id="jobNewCustWHAge" type="number"></div>
+      </div>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Irrigation Zones</label><input id="jobNewCustZones" type="number"></div>
+        <div class="form-group"><label class="field-label">Controller Type</label><input id="jobNewCustController" type="text"></div>
+      </div>
+      <div class="form-group"><label class="field-label">Watch List / Notes</label><input id="jobNewCustWatch" type="text" placeholder="e.g. aging valve, flag for next visit"></div>
+    </div>` : ''}
     <button class="pill-btn solid" style="width:100%;" onclick="saveJob()">Save Job</button>
   `;
 }
 function saveJob() {
-  let customerId, customerName, customerAddress;
+  let customerId, customerName, customerAddress, newCustomerExtras = null;
   if (jobNewCustomerMode) {
     customerName = document.getElementById('jobNewCustName').value.trim();
     customerAddress = document.getElementById('jobNewCustAddress').value.trim();
     if (!customerName) { toast('⚠️ Enter a customer name'); return; }
+    newCustomerExtras = {
+      phone: document.getElementById('jobNewCustPhone').value.trim(),
+      email: document.getElementById('jobNewCustEmail').value.trim(),
+      property: {
+        waterLineType: document.getElementById('jobNewCustWaterLine').value,
+        pipeType: document.getElementById('jobNewCustPipeType').value,
+        waterHeaterType: document.getElementById('jobNewCustWHType').value,
+        waterHeaterAge: Number(document.getElementById('jobNewCustWHAge').value) || null,
+        irrigationZones: Number(document.getElementById('jobNewCustZones').value) || null,
+        irrigationControllerType: document.getElementById('jobNewCustController').value.trim(),
+        watchList: document.getElementById('jobNewCustWatch').value.trim()
+      }
+    };
   } else {
     customerId = document.getElementById('jobCustomerId').value;
     if (!customerId) { toast('⚠️ Select a customer'); return; }
@@ -981,8 +1018,12 @@ function saveJob() {
   };
 
   if (jobNewCustomerMode) {
-    db.collection('customers').add({ name: customerName, address: customerAddress, phone: '', email: '', notes: '', property: {}, commLog: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() })
-      .then(ref => proceed(ref.id)).catch(e => toast('❌ ' + e.message));
+    db.collection('customers').add({
+      name: customerName, address: customerAddress,
+      phone: newCustomerExtras.phone, email: newCustomerExtras.email,
+      notes: '', property: newCustomerExtras.property, commLog: [],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(ref => proceed(ref.id)).catch(e => toast('❌ ' + e.message));
   } else {
     proceed(customerId);
   }
