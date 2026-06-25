@@ -292,6 +292,9 @@ const CLOUDINARY_PRESET = "Leo's Receipts";
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQOI1EB5aLTm11bBypcODg-UYtblUH5nc0cTf8PZuJ3VN8u-vGff8BYXu_S7CQAkX9/exec';
 const SPREADSHEET_ID = '1s91mWhcAv-JnkmucXNKpVdhjEmICCpn_-EHkm9LKNB4';
 const HST_RATE = 0.13;
+const PLUMBING_LABOUR_FIRST_HOUR = 160;
+const PLUMBING_LABOUR_ADDL_HOUR = 125;
+const MATERIAL_MARKUP = 0.10;
 
 const STATUS_FLOW = ['Quoted', 'Scheduled', 'In Progress', 'Complete', 'Follow-up Needed'];
 
@@ -310,6 +313,8 @@ let inventory = [];
 let truckLogs = [];
 let priceList = [];
 let incomeReceipts = []; // from receipts collection, type==='income', read-only cross-reference
+let expenseReceipts = []; // from receipts collection, type==='expense', read-only — used to pull material costs into quotes
+let receiptSearchQuery = '';
 
 let customersView = 'list'; // list | add | detail
 let activeCustomerId = null;
@@ -561,6 +566,11 @@ function attachListeners() {
 
   db.collection('receipts').where('type', '==', 'income').onSnapshot(snap => {
     incomeReceipts = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    refreshCurrentTab();
+  }, () => {});
+
+  db.collection('receipts').where('type', '==', 'expense').onSnapshot(snap => {
+    expenseReceipts = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
     refreshCurrentTab();
   }, () => {});
 }
@@ -1236,53 +1246,132 @@ function deleteJob(id) {
 }
 
 // ── QUOTE BUILDER ──
+let quoteServiceFee = 0; // drain cleaning / call-out fee, manual flat amount
+let showReceiptSearch = false;
+
+function plumbingLabourCost(hours) {
+  hours = Number(hours) || 0;
+  if (hours <= 0) return 0;
+  return PLUMBING_LABOUR_FIRST_HOUR + Math.max(0, hours - 1) * PLUMBING_LABOUR_ADDL_HOUR;
+}
+function lineItemTotal(li) {
+  if (li.kind === 'plumbing-labour') return plumbingLabourCost(li.hours);
+  if (li.kind === 'material') return (Number(li.quantity)||0) * (Number(li.unitCost)||0) * (1 + MATERIAL_MARKUP);
+  return (Number(li.quantity)||0) * (Number(li.unitCost)||0); // 'other' — no markup
+}
+function quoteTotals() {
+  let labourTotal = 0, materialsTotal = 0, materialsCostTotal = 0, otherTotal = 0;
+  quoteLineItems.forEach(li => {
+    const t = lineItemTotal(li);
+    if (li.kind === 'plumbing-labour') labourTotal += t;
+    else if (li.kind === 'material') { materialsTotal += t; materialsCostTotal += (Number(li.quantity)||0) * (Number(li.unitCost)||0); }
+    else otherTotal += t;
+  });
+  const fee = Number(quoteServiceFee) || 0;
+  const subtotal = labourTotal + materialsTotal + otherTotal + fee;
+  const hst = subtotal * HST_RATE;
+  const total = subtotal + hst;
+  return { labourTotal, materialsTotal, materialsCostTotal, otherTotal, fee, subtotal, hst, total };
+}
+
 function openQuoteBuilder(jobId) {
   formOpen = true;
   jobsView = 'quote';
   activeJobId = jobId;
+  showReceiptSearch = false;
   const j = jobs.find(x => x._id === jobId);
   const existing = quotes.find(x => x._id === j.quoteId);
   activeQuoteId = existing ? existing._id : null;
   quoteLineItems = existing ? JSON.parse(JSON.stringify(existing.lineItems||[])) : [];
-  if (quoteLineItems.length === 0) quoteLineItems.push({ description: '', type: 'labour', quantity: 1, unitCost: 0 });
+  quoteServiceFee = existing ? Number(existing.serviceCallFee||0) : 0;
+  receiptSearchQuery = j.customerName || '';
   renderJobsTab();
   switchTabUI('jobs');
 }
 function quoteBuilderHTML(jobId) {
   const j = jobs.find(x => x._id === jobId);
   const existing = quotes.find(x => x._id === activeQuoteId);
-  let labourTotal = 0, materialsTotal = 0;
-  quoteLineItems.forEach(li => {
-    const t = (Number(li.quantity)||0) * (Number(li.unitCost)||0);
-    if (li.type === 'labour') labourTotal += t; else materialsTotal += t;
-  });
-  const subtotal = labourTotal + materialsTotal;
-  const hst = subtotal * HST_RATE;
-  const total = subtotal + hst;
+  const t = quoteTotals();
+  const labourLines = quoteLineItems.map((li,i) => ({li,i})).filter(x => x.li.kind === 'plumbing-labour');
+  const materialLines = quoteLineItems.map((li,i) => ({li,i})).filter(x => x.li.kind === 'material');
+  const otherLines = quoteLineItems.map((li,i) => ({li,i})).filter(x => x.li.kind === 'other');
+
+  const q = (receiptSearchQuery||'').toLowerCase();
+  const matchingReceipts = expenseReceipts.filter(r =>
+    (r.clientName||'').toLowerCase().includes(q) || (r.vendor||'').toLowerCase().includes(q)
+  ).slice(0, 25);
+
   return `
     <div class="back-row"><button class="back-btn" onclick="openJobDetail('${jobId}')">←</button><h2>Quote — ${esc(j.customerName)}</h2></div>
+
     <div class="card">
-      <h2>Line Items</h2>
-      ${priceList.length ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Price list is active — type to search items.</div>` : ''}
-      ${quoteLineItems.map((li,i) => `
-        <div class="line-item-row">
+      <h2>🔧 Plumbing Labour</h2>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">$${PLUMBING_LABOUR_FIRST_HOUR} first hour, $${PLUMBING_LABOUR_ADDL_HOUR}/hr after — calculated automatically.</div>
+      ${labourLines.map(({li,i}) => `
+        <div class="line-item-row" style="grid-template-columns:1fr 70px 70px 26px;">
           <input type="text" placeholder="Description" value="${esc(li.description)}" onchange="quoteLineItems[${i}].description=this.value">
-          <select onchange="quoteLineItems[${i}].type=this.value;openQuoteBuilderRefresh()">
-            <option value="labour" ${li.type==='labour'?'selected':''}>Labour</option>
-            <option value="material" ${li.type==='material'?'selected':''}>Material</option>
-          </select>
-          <input type="number" placeholder="Qty" value="${li.quantity}" onchange="quoteLineItems[${i}].quantity=Number(this.value);openQuoteBuilderRefresh()">
-          <input type="number" placeholder="$ each" value="${li.unitCost}" onchange="quoteLineItems[${i}].unitCost=Number(this.value);openQuoteBuilderRefresh()">
+          <input type="number" placeholder="Hours" step="0.5" value="${li.hours||''}" onchange="quoteLineItems[${i}].hours=Number(this.value);openQuoteBuilderRefresh()">
+          <div style="font-size:13px;font-weight:600;color:var(--blue);text-align:right;">$${plumbingLabourCost(li.hours).toFixed(2)}</div>
           <button class="remove-line" onclick="quoteLineItems.splice(${i},1);openQuoteBuilderRefresh()">✕</button>
         </div>`).join('')}
-      <button class="pill-btn" onclick="quoteLineItems.push({description:'',type:'labour',quantity:1,unitCost:0});openQuoteBuilderRefresh()">+ Add Line</button>
+      <button class="pill-btn" onclick="quoteLineItems.push({kind:'plumbing-labour',description:'',hours:1});openQuoteBuilderRefresh()">+ Add Plumbing Labour</button>
     </div>
+
+    <div class="card">
+      <h2>🔩 Materials</h2>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Enter what you paid — a 10% markup is added automatically. Customer never sees the cost, only the billed price.</div>
+      ${materialLines.map(({li,i}) => {
+        const billed = (Number(li.quantity)||0) * (Number(li.unitCost)||0) * (1 + MATERIAL_MARKUP);
+        return `
+        <div class="line-item-row">
+          <input type="text" placeholder="Description" value="${esc(li.description)}" onchange="quoteLineItems[${i}].description=this.value">
+          <input type="number" placeholder="Qty" value="${li.quantity}" onchange="quoteLineItems[${i}].quantity=Number(this.value);openQuoteBuilderRefresh()">
+          <input type="number" placeholder="Cost ea" value="${li.unitCost}" onchange="quoteLineItems[${i}].unitCost=Number(this.value);openQuoteBuilderRefresh()">
+          <div style="font-size:11px;color:var(--text-muted);text-align:right;">$${billed.toFixed(2)}</div>
+          <button class="remove-line" onclick="quoteLineItems.splice(${i},1);openQuoteBuilderRefresh()">✕</button>
+        </div>`;
+      }).join('')}
+      <button class="pill-btn" onclick="quoteLineItems.push({kind:'material',description:'',quantity:1,unitCost:0});openQuoteBuilderRefresh()">+ Add Material</button>
+      <button class="pill-btn" onclick="showReceiptSearch=!showReceiptSearch;openQuoteBuilderRefresh()">${showReceiptSearch ? '✕ Close Receipts' : '🧾 Add From Receipts'}</button>
+      ${showReceiptSearch ? `
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+          <input type="text" placeholder="Search by customer name or vendor..." value="${esc(receiptSearchQuery)}" oninput="receiptSearchQuery=this.value;openQuoteBuilderRefresh()" style="margin-bottom:8px;">
+          ${matchingReceipts.length ? matchingReceipts.map(r => `
+            <div class="list-item" style="display:flex;justify-content:space-between;align-items:center;" onclick="addMaterialFromReceipt('${r._id}')">
+              <div><div class="list-item-title">${esc(r.vendor||'Unknown vendor')}</div><div class="list-item-sub">${fmtDate(r.date)} ${r.clientName ? '· ' + esc(r.clientName) : ''}</div></div>
+              <div style="font-weight:600;color:var(--blue);">$${Number(r.amount||0).toFixed(2)}</div>
+            </div>`).join('') : `<div style="font-size:13px;color:var(--text-muted);">No matching expense receipts found.</div>`}
+        </div>` : ''}
+    </div>
+
+    <div class="card">
+      <h2>Other Charges</h2>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Irrigation labour or anything billed manually — no markup applied.</div>
+      ${otherLines.map(({li,i}) => `
+        <div class="line-item-row">
+          <input type="text" placeholder="Description" value="${esc(li.description)}" onchange="quoteLineItems[${i}].description=this.value">
+          <input type="number" placeholder="Qty" value="${li.quantity}" onchange="quoteLineItems[${i}].quantity=Number(this.value);openQuoteBuilderRefresh()">
+          <input type="number" placeholder="$ each" value="${li.unitCost}" onchange="quoteLineItems[${i}].unitCost=Number(this.value);openQuoteBuilderRefresh()">
+          <div style="font-size:11px;color:var(--text-muted);text-align:right;">$${((Number(li.quantity)||0)*(Number(li.unitCost)||0)).toFixed(2)}</div>
+          <button class="remove-line" onclick="quoteLineItems.splice(${i},1);openQuoteBuilderRefresh()">✕</button>
+        </div>`).join('')}
+      <button class="pill-btn" onclick="quoteLineItems.push({kind:'other',description:'',quantity:1,unitCost:0});openQuoteBuilderRefresh()">+ Add Other Charge</button>
+    </div>
+
+    <div class="card">
+      <h2>🐍 Drain Cleaning Call Fee</h2>
+      <input type="number" placeholder="$0.00" value="${quoteServiceFee||''}" onchange="quoteServiceFee=Number(this.value)||0;openQuoteBuilderRefresh()">
+    </div>
+
     <div class="line-totals">
-      <div class="row"><span>Labour</span><span>$${labourTotal.toFixed(2)}</span></div>
-      <div class="row"><span>Materials</span><span>$${materialsTotal.toFixed(2)}</span></div>
-      <div class="row"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
-      <div class="row"><span>HST (13%)</span><span>$${hst.toFixed(2)}</span></div>
-      <div class="row big"><span>Total</span><span>$${total.toFixed(2)}</span></div>
+      <div class="row"><span>Plumbing Labour</span><span>$${t.labourTotal.toFixed(2)}</span></div>
+      <div class="row"><span>Materials (billed)</span><span>$${t.materialsTotal.toFixed(2)}</span></div>
+      ${t.materialsTotal > 0 ? `<div class="row" style="color:var(--text-muted);font-size:11px;"><span>— material cost (your records)</span><span>$${t.materialsCostTotal.toFixed(2)}</span></div>` : ''}
+      <div class="row"><span>Other Charges</span><span>$${t.otherTotal.toFixed(2)}</span></div>
+      <div class="row"><span>Drain Cleaning Fee</span><span>$${t.fee.toFixed(2)}</span></div>
+      <div class="row"><span>Subtotal</span><span>$${t.subtotal.toFixed(2)}</span></div>
+      <div class="row"><span>HST (13%)</span><span>$${t.hst.toFixed(2)}</span></div>
+      <div class="row big"><span>Total</span><span>$${t.total.toFixed(2)}</span></div>
     </div>
     <div class="card">
       <h2>Status</h2>
@@ -1296,23 +1385,26 @@ function quoteBuilderHTML(jobId) {
 function openQuoteBuilderRefresh() {
   document.getElementById('tab-jobs').innerHTML = quoteBuilderHTML(activeJobId);
 }
+function addMaterialFromReceipt(receiptId) {
+  const r = expenseReceipts.find(x => x._id === receiptId);
+  if (!r) return;
+  quoteLineItems.push({ kind: 'material', description: r.vendor || 'Material', quantity: 1, unitCost: Number(r.amount)||0, fromReceiptId: receiptId });
+  showReceiptSearch = false;
+  openQuoteBuilderRefresh();
+  toast('Added from receipt ✓');
+}
 function saveQuote(jobId) {
   const validLines = quoteLineItems.filter(li => li.description.trim());
-  if (!validLines.length) { toast('⚠️ Add at least one line item'); return; }
+  if (!validLines.length && !quoteServiceFee) { toast('⚠️ Add at least one line item or a call fee'); return; }
   const j = jobs.find(x => x._id === jobId);
-  let labourTotal = 0, materialsTotal = 0;
-  validLines.forEach(li => {
-    const t = (Number(li.quantity)||0) * (Number(li.unitCost)||0);
-    li.total = t;
-    if (li.type === 'labour') labourTotal += t; else materialsTotal += t;
-  });
-  const subtotal = labourTotal + materialsTotal;
-  const hst = subtotal * HST_RATE;
-  const total = subtotal + hst;
+  validLines.forEach(li => { li.total = lineItemTotal(li); });
+  const t = quoteTotals();
   const status = document.getElementById('quoteStatus').value;
   const payload = {
     jobId, customerId: j.customerId, customerName: j.customerName,
-    date: todayStr(), lineItems: validLines, labourTotal, materialsTotal, subtotal, hst, total,
+    date: todayStr(), lineItems: validLines, serviceCallFee: t.fee,
+    labourTotal: t.labourTotal, materialsTotal: t.materialsTotal, materialsCostTotal: t.materialsCostTotal,
+    otherTotal: t.otherTotal, subtotal: t.subtotal, hst: t.hst, total: t.total,
     status, convertedToInvoice: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   formOpen = false;
@@ -1335,8 +1427,9 @@ function convertToInvoice(quoteId) {
   const payload = {
     quoteId, jobId: q.jobId, customerId: q.customerId, customerName: q.customerName,
     invoiceNum, date: todayStr(), dueDate: dueDateStr,
-    lineItems: q.lineItems, labourTotal: q.labourTotal, materialsTotal: q.materialsTotal,
-    subtotal: q.subtotal, hst: q.hst, total: q.total, deposit: 0, balance: q.total,
+    lineItems: q.lineItems, serviceCallFee: q.serviceCallFee||0,
+    labourTotal: q.labourTotal, materialsTotal: q.materialsTotal, materialsCostTotal: q.materialsCostTotal||0,
+    otherTotal: q.otherTotal||0, subtotal: q.subtotal, hst: q.hst, total: q.total, deposit: 0, balance: q.total,
     status: 'Unpaid', paidDate: null,
     createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -1356,6 +1449,19 @@ function openInvoiceView(id) {
   renderJobsTab();
   switchTabUI('jobs');
 }
+// Customer-facing display for a line item — NEVER exposes raw material cost, only the billed price.
+function lineItemDisplay(li) {
+  if (li.kind === 'plumbing-labour') {
+    const hours = Number(li.hours)||0;
+    return { label: li.description || 'Plumbing Labour', qtyLabel: `${hours} hr${hours===1?'':'s'}`, total: plumbingLabourCost(hours) };
+  }
+  if (li.kind === 'material') {
+    const billedUnit = (Number(li.unitCost)||0) * (1 + MATERIAL_MARKUP);
+    return { label: li.description || 'Material', qtyLabel: `${li.quantity} × $${billedUnit.toFixed(2)}`, total: (Number(li.quantity)||0) * billedUnit };
+  }
+  const unit = Number(li.unitCost)||0;
+  return { label: li.description || 'Other', qtyLabel: `${li.quantity} × $${unit.toFixed(2)}`, total: (Number(li.quantity)||0) * unit };
+}
 function invoiceViewHTML(id) {
   const inv = invoices.find(x => x._id === id);
   if (!inv) return `<div class="back-row"><button class="back-btn" onclick="backToJobsList()">←</button><h2>Not found</h2></div>`;
@@ -1366,7 +1472,9 @@ function invoiceViewHTML(id) {
       <div class="list-item-sub">${esc(inv.customerName)}</div>
       <div class="list-item-sub">Date: ${fmtDate(inv.date)} · Due: ${fmtDate(inv.dueDate)}</div>
       <div style="margin:8px 0;"><span class="status-badge" style="background:${isOverdue ? 'var(--danger)' : inv.status==='Paid' ? 'var(--green)' : 'var(--blue)'};">${isOverdue ? 'Overdue' : inv.status}</span></div>
-      ${(inv.lineItems||[]).map(li => `<div class="list-item-sub" style="display:flex;justify-content:space-between;"><span>${esc(li.description)} (${li.type}) × ${li.quantity}</span><span>$${(li.quantity*li.unitCost).toFixed(2)}</span></div>`).join('')}
+      ${(inv.lineItems||[]).map(li => { const d = lineItemDisplay(li); return `<div class="list-item-sub" style="display:flex;justify-content:space-between;"><span>${esc(d.label)} (${d.qtyLabel})</span><span>$${d.total.toFixed(2)}</span></div>`; }).join('')}
+      ${Number(inv.serviceCallFee||0) > 0 ? `<div class="list-item-sub" style="display:flex;justify-content:space-between;"><span>Drain Cleaning Call Fee</span><span>$${Number(inv.serviceCallFee).toFixed(2)}</span></div>` : ''}
+      ${Number(inv.materialsCostTotal||0) > 0 ? `<div class="list-item-sub" style="margin-top:6px;color:var(--text-muted);font-size:11px;">Internal only — material cost: $${Number(inv.materialsCostTotal).toFixed(2)} (margin: $${(Number(inv.materialsTotal||0)-Number(inv.materialsCostTotal||0)).toFixed(2)})</div>` : ''}
     </div>
     <div class="line-totals">
       <div class="row"><span>Subtotal</span><span>$${Number(inv.subtotal||0).toFixed(2)}</span></div>
@@ -1404,8 +1512,9 @@ function printInvoice(id) {
     <h1>Leo's Plumbing and Irrigation</h1>
     <h2>Invoice ${esc(inv.invoiceNum)}</h2>
     <p>Bill to: ${esc(inv.customerName)}<br>Date: ${fmtDate(inv.date)} · Due: ${fmtDate(inv.dueDate)}</p>
-    <table><tr><th>Description</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Total</th></tr>
-    ${(inv.lineItems||[]).map(li => `<tr><td>${esc(li.description)}</td><td>${li.type}</td><td>${li.quantity}</td><td>$${Number(li.unitCost).toFixed(2)}</td><td>$${(li.quantity*li.unitCost).toFixed(2)}</td></tr>`).join('')}
+    <table><tr><th>Description</th><th>Qty</th><th>Total</th></tr>
+    ${(inv.lineItems||[]).map(li => { const d = lineItemDisplay(li); return `<tr><td>${esc(d.label)}</td><td>${esc(d.qtyLabel)}</td><td>$${d.total.toFixed(2)}</td></tr>`; }).join('')}
+    ${Number(inv.serviceCallFee||0) > 0 ? `<tr><td>Drain Cleaning Call Fee</td><td>—</td><td>$${Number(inv.serviceCallFee).toFixed(2)}</td></tr>` : ''}
     </table>
     <p>Subtotal: $${Number(inv.subtotal||0).toFixed(2)}<br>HST (13%): $${Number(inv.hst||0).toFixed(2)}<br>Deposit: $${Number(inv.deposit||0).toFixed(2)}</p>
     <p class="total-row">Balance Owing: $${Number(inv.balance||0).toFixed(2)}</p>
