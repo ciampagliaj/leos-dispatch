@@ -88,6 +88,76 @@
 
   #toast { position: fixed; bottom: calc(20px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: #222; color: white; padding: 11px 18px; border-radius: 10px; font-size: 14px; opacity: 0; pointer-events: none; transition: all 0.25s; z-index: 999; max-width: 88%; text-align: center; }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* SEARCH / FILTERS */
+  .search-bar input { width: 100%; padding: 11px 13px; border: 1.5px solid #d0d7de; border-radius: 9px; font-size: 15px; margin-bottom: 10px; }
+  .filter-tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 10px; }
+  .filter-chip { padding: 7px 14px; border-radius: 20px; background: #eee; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; color: #555; flex-shrink: 0; }
+  .filter-chip.active { background: var(--blue); color: white; }
+
+  /* LISTS */
+  .list-item { background: white; border-radius: 10px; padding: 13px 14px; margin-bottom: 9px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer; }
+  .list-item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 8px; }
+  .list-item-title { font-weight: 600; font-size: 14px; }
+  .list-item-sub { font-size: 12px; color: var(--text-muted); }
+  .status-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; color: white; }
+  .status-Quoted { background: #7F8C8D; }
+  .status-Scheduled { background: var(--blue); }
+  .status-In.Progress, .status-In-Progress { background: #E67E22; }
+  .status-Complete { background: var(--green); }
+  .status-Follow-up.Needed, .status-Follow-up-Needed { background: var(--danger); }
+
+  /* BACK ROW */
+  .back-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .back-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--blue); padding: 4px; }
+  .back-row h2 { font-size: 16px; font-weight: 700; color: var(--text); }
+
+  /* STEPPER */
+  .stepper { display: flex; justify-content: space-between; margin: 6px 0 16px; }
+  .step { flex: 1; text-align: center; font-size: 9px; color: var(--text-muted); cursor: pointer; }
+  .step .dot { width: 22px; height: 22px; border-radius: 50%; background: #ddd; margin: 0 auto 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; }
+  .step.done .dot { background: var(--green); }
+  .step.current .dot { background: var(--blue); }
+
+  /* PHOTO GRID */
+  .photo-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 12px; }
+  .photo-grid img { width: 100%; height: 80px; object-fit: cover; border-radius: 8px; }
+  .add-photo-tile { width: 100%; height: 80px; border: 2px dashed #b0c4d8; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--blue); cursor: pointer; background: #f7fafc; }
+
+  /* LINE ITEMS */
+  .line-item-row { display: grid; grid-template-columns: 1fr 60px 60px 64px 26px; gap: 6px; margin-bottom: 8px; align-items: center; }
+  .line-item-row input, .line-item-row select { font-size: 12px; padding: 8px 6px; border: 1.5px solid #d0d7de; border-radius: 7px; }
+  .remove-line { background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; }
+  .line-totals { background: #f7fafc; border-radius: 9px; padding: 12px 14px; margin: 10px 0; }
+  .line-totals .row { display: flex; justify-content: space-between; font-size: 13px; padding: 2px 0; color: #555; }
+  .line-totals .row.big { font-weight: 700; font-size: 16px; color: var(--blue); border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px; }
+
+  /* REPORTS */
+  .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .report-card { background: white; border-radius: 10px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); text-align: center; }
+  .report-card .num { font-size: 20px; font-weight: 700; color: var(--blue); }
+  .report-card .label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font-size: 12px; }
+  .bar-row .bar-label { width: 60px; flex-shrink: 0; color: var(--text-muted); }
+  .bar-track { flex: 1; height: 14px; background: #eee; border-radius: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--blue); border-radius: 8px; }
+
+  /* TOGGLES */
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .toggle-row:last-child { border-bottom: none; }
+  .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #ccc; border-radius: 24px; cursor: pointer; transition: .2s; }
+  .slider:before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: .2s; }
+  .switch input:checked + .slider { background: var(--blue); }
+  .switch input:checked + .slider:before { transform: translateX(20px); }
+
+  .low-stock-badge { background: var(--danger); color: white; border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
+  .pill-btn { display: inline-block; padding: 8px 14px; border-radius: 9px; border: 1.5px solid var(--blue); color: var(--blue); background: none; font-size: 13px; font-weight: 600; cursor: pointer; margin-right: 8px; margin-bottom: 8px; }
+  .pill-btn.solid { background: var(--blue); color: white; border-color: var(--blue); }
+  .comm-entry { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .comm-entry:last-child { border-bottom: none; }
+  .comm-entry .meta { color: var(--text-muted); font-size: 11px; }
 </style>
 </head>
 <body>
@@ -158,68 +228,22 @@
   </div>
 
   <!-- DISPATCH (Home Dashboard) -->
-  <div id="tab-dispatch" class="scroll-content">
-    <div class="card">
-      <h2 id="greeting">Good morning</h2>
-      <div class="quick-actions">
-        <button onclick="toast('Job builder coming soon')">+ New Job</button>
-        <button onclick="switchTab('mileage')">+ Log Mileage</button>
-        <button onclick="switchTab('customers')">+ Add Customer</button>
-      </div>
-    </div>
-    <div class="card placeholder">
-      <div style="font-size:32px;margin-bottom:8px;">📋</div>
-      Today's jobs will appear here once the Jobs module is built.
-    </div>
-  </div>
+  <div id="tab-dispatch" class="scroll-content"></div>
 
   <!-- JOBS -->
-  <div id="tab-jobs" class="scroll-content hidden">
-    <div class="card placeholder">
-      <div style="font-size:32px;margin-bottom:8px;">🛠️</div>
-      Jobs module — coming next.
-    </div>
-  </div>
+  <div id="tab-jobs" class="scroll-content hidden"></div>
 
   <!-- CUSTOMERS -->
-  <div id="tab-customers" class="scroll-content hidden">
-    <div class="card placeholder">
-      <div style="font-size:32px;margin-bottom:8px;">👤</div>
-      Customers module — coming next.
-    </div>
-  </div>
+  <div id="tab-customers" class="scroll-content hidden"></div>
 
   <!-- MILEAGE -->
-  <div id="tab-mileage" class="scroll-content hidden">
-    <div class="card placeholder">
-      <div style="font-size:32px;margin-bottom:8px;">🚚</div>
-      Mileage module — coming next.
-    </div>
-  </div>
+  <div id="tab-mileage" class="scroll-content hidden"></div>
 
   <!-- REPORTS -->
-  <div id="tab-reports" class="scroll-content hidden">
-    <div class="card placeholder">
-      <div style="font-size:32px;margin-bottom:8px;">📊</div>
-      Reports module — coming next.
-    </div>
-  </div>
+  <div id="tab-reports" class="scroll-content hidden"></div>
 
   <!-- SETTINGS -->
-  <div id="tab-settings" class="scroll-content hidden">
-    <div class="card">
-      <h2>Account</h2>
-      <div style="font-size:14px;color:var(--text-muted);margin-bottom:10px;">Signed in as <strong id="settingsUserName"></strong></div>
-      <div class="quick-actions">
-        <button onclick="switchUser()">Switch User</button>
-        <button onclick="lockApp()">Lock App</button>
-      </div>
-    </div>
-    <div class="card">
-      <h2>App Info</h2>
-      <div style="font-size:13px;color:var(--text-muted);">Leo's Dispatch v0.1 (scaffold)<br>Leo's Plumbing and Irrigation</div>
-    </div>
-  </div>
+  <div id="tab-settings" class="scroll-content hidden"></div>
 </div>
 
 <div id="toast"></div>
@@ -243,11 +267,85 @@ db.enablePersistence().catch(() => {});
 
 // ── CONSTANTS ──
 const PIN = '1210';
+const CLOUDINARY_CLOUD  = 'duuuutrs2';
+const CLOUDINARY_PRESET = "Leo's Receipts";
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQOI1EB5aLTm11bBypcODg-UYtblUH5nc0cTf8PZuJ3VN8u-vGff8BYXu_S7CQAkX9/exec';
+const SPREADSHEET_ID = '1s91mWhcAv-JnkmucXNKpVdhjEmICCpn_-EHkm9LKNB4';
+const HST_RATE = 0.13;
+
+const STATUS_FLOW = ['Quoted', 'Scheduled', 'In Progress', 'Complete', 'Follow-up Needed'];
 
 // ── STATE ──
 let pinEntry = '';
 let currentTab = 'dispatch';
 let currentUserName = null; // 'Jake' | 'Doug'
+let formOpen = false; // true while user is in an add/edit form — suppresses snapshot re-renders
+
+let customers = [];
+let jobs = [];
+let quotes = [];
+let invoices = [];
+let mileageLogs = [];
+let inventory = [];
+let truckLogs = [];
+let priceList = [];
+let incomeReceipts = []; // from receipts collection, type==='income', read-only cross-reference
+
+let customersView = 'list'; // list | add | detail
+let activeCustomerId = null;
+
+let jobsView = 'list'; // list | add | detail | quote | invoice
+let activeJobId = null;
+let jobFilterTrade = 'all';
+let jobFilterStatus = 'all';
+let jobSearch = '';
+let quoteLineItems = [];
+let activeQuoteId = null;
+let activeInvoiceId = null;
+let invoiceLineItems = [];
+
+let mileageSubTab = 'trip'; // trip | truck
+
+let notifPrefs = JSON.parse(localStorage.getItem('leosDispatchNotifPrefs') || '{"jobAdded":true,"statusChange":true,"overdueInvoice":true,"lowStock":true}');
+
+let jobsLoaded = false; // becomes true after first snapshot, so we don't toast on initial load
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function mondayOf(dateObjOrStr) {
+  const d = typeof dateObjOrStr === 'string' ? new Date(dateObjOrStr + 'T00:00:00') : new Date(dateObjOrStr);
+  const day = d.getDay(); // 0=Sun
+  const diff = (day === 0 ? -6 : 1) - day;
+  d.setDate(d.getDate() + diff);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function fmtDate(s) {
+  if (!s) return '';
+  const [y,m,d] = s.split('-');
+  const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${mo[parseInt(m)-1]} ${parseInt(d)}, ${y}`;
+}
+function statusClass(s) { return 'status-' + s.replace(/\s+/g,'-'); }
+function tradeBadge(trade) {
+  const cls = trade === 'plumbing' ? 'plumbing' : trade === 'irrigation' ? 'irrigation' : 'combined';
+  const label = trade === 'plumbing' ? '🔧 Plumbing' : trade === 'irrigation' ? '🌿 Irrigation' : '🔧🌿 Combined';
+  return `<span class="trade-badge ${cls}">${label}</span>`;
+}
+function downloadCSV(filename, rows) {
+  const csv = rows.map(r => r.map(c => `"${String(c==null?'':c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
 
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -347,19 +445,1159 @@ function switchUser() {
 
 function enterApp() {
   document.getElementById('appScreen').classList.remove('hidden');
-  const isJake = currentUserName === 'Jake';
-  document.getElementById('headerTitle').textContent = isJake ? '🔧 Leo\'s Dispatch' : '🌿 Leo\'s Dispatch';
-  document.getElementById('greeting').textContent = isJake ? 'Good morning, Jake 🔧' : 'Good morning, Doug 🌿';
   document.getElementById('settingsUserName').textContent = currentUserName;
+  attachListeners();
+  switchTab('dispatch');
 }
 
 // ── TABS ──
+const TAB_RENDERERS = {
+  dispatch: renderDispatchTab,
+  jobs: renderJobsTab,
+  customers: renderCustomersTab,
+  mileage: renderMileageTab,
+  reports: renderReportsTab,
+  settings: renderSettingsTab
+};
 function switchTab(t) {
   currentTab = t;
   document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.scroll-content').forEach(el => el.classList.add('hidden'));
   document.getElementById('tab-btn-' + t).classList.add('active');
   document.getElementById('tab-' + t).classList.remove('hidden');
+  TAB_RENDERERS[t]();
+}
+function refreshCurrentTab() {
+  if (formOpen) return;
+  TAB_RENDERERS[currentTab]();
+}
+
+// ── FIRESTORE LISTENERS ──
+function attachListeners() {
+  db.collection('customers').onSnapshot(snap => {
+    customers = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    refreshCurrentTab();
+  });
+
+  db.collection('jobs').onSnapshot(snap => {
+    if (jobsLoaded) {
+      snap.docChanges().forEach(ch => {
+        const data = ch.doc.data();
+        if ((ch.type === 'added' || ch.type === 'modified') && data.updatedBy && data.updatedBy !== currentUserName) {
+          if (ch.type === 'added' && notifPrefs.jobAdded) {
+            toast(`📋 New job added: ${data.customerName || 'Unknown'} on ${fmtDate(data.scheduledDate)}`);
+          } else if (ch.type === 'modified' && notifPrefs.statusChange) {
+            toast(`🔄 ${data.customerName || 'Job'} status changed to ${data.status}`);
+          }
+        }
+      });
+    }
+    jobs = snap.docs.map(d => ({ _id: d.id, ...d.data() })).sort((a,b) => (a.scheduledDate||'').localeCompare(b.scheduledDate||''));
+    jobsLoaded = true;
+    refreshCurrentTab();
+  });
+
+  db.collection('quotes').onSnapshot(snap => {
+    quotes = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    refreshCurrentTab();
+  });
+
+  db.collection('invoices').onSnapshot(snap => {
+    invoices = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    refreshCurrentTab();
+  });
+
+  db.collection('mileageLog').onSnapshot(snap => {
+    mileageLogs = snap.docs.map(d => ({ _id: d.id, ...d.data() })).sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    refreshCurrentTab();
+  });
+
+  db.collection('inventory').onSnapshot(snap => {
+    const prevLow = inventory.filter(i => Number(i.currentStock) <= Number(i.lowStockThreshold)).map(i => i._id);
+    inventory = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    const nowLow = inventory.filter(i => Number(i.currentStock) <= Number(i.lowStockThreshold));
+    if (jobsLoaded && notifPrefs.lowStock) {
+      nowLow.forEach(i => { if (!prevLow.includes(i._id)) toast(`⚠️ Low stock: ${i.name}`); });
+    }
+    refreshCurrentTab();
+  });
+
+  db.collection('truckLog').onSnapshot(snap => {
+    truckLogs = snap.docs.map(d => ({ _id: d.id, ...d.data() })).sort((a,b) => (b.weekStarting||'').localeCompare(a.weekStarting||''));
+    refreshCurrentTab();
+  });
+
+  db.collection('priceList').onSnapshot(snap => {
+    priceList = snap.docs.map(d => ({ _id: d.id, ...d.data() })).filter(p => p.active);
+    refreshCurrentTab();
+  });
+
+  db.collection('receipts').where('type', '==', 'income').onSnapshot(snap => {
+    incomeReceipts = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    refreshCurrentTab();
+  }, () => {});
+}
+
+// ── IMAGE COMPRESSION + CLOUDINARY (same pattern as Leo's Receipt Tracker) ──
+async function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    const cleanup = () => { try { URL.revokeObjectURL(url); } catch {} };
+    img.onerror = () => { cleanup(); reject(new Error('Image load failed')); };
+    img.onload = () => {
+      cleanup();
+      try {
+        const MAX = 1400;
+        let w = img.width, h = img.height;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d');
+        if (!ctx) { reject(new Error('Canvas unavailable')); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        c.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob returned null')), 'image/jpeg', 0.78);
+      } catch(e) { reject(e); }
+    };
+    img.src = url;
+  });
+}
+async function uploadJobPhoto(jobId, file) {
+  try {
+    let blob;
+    try { blob = await compressImage(file); } catch { blob = file; }
+    const fd = new FormData();
+    fd.append('file', blob);
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.secure_url) throw new Error(data.error?.message || 'No URL returned');
+    await db.collection('jobs').doc(jobId).update({
+      jobPhotos: firebase.firestore.FieldValue.arrayUnion(data.secure_url),
+      updatedBy: currentUserName,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('Photo added ✓');
+  } catch(e) {
+    console.error('Job photo upload error:', e.message);
+    toast('❌ Photo upload failed');
+  }
+}
+
+// ── DISPATCH TAB ──
+function renderDispatchTab() {
+  const isJake = currentUserName === 'Jake';
+  const otherUser = isJake ? 'Doug' : 'Jake';
+  const today = todayStr();
+  const monday = mondayOf(today);
+  const sundayDate = new Date(monday + 'T00:00:00');
+  sundayDate.setDate(sundayDate.getDate() + 6);
+  const sunday = sundayDate.getFullYear() + '-' + String(sundayDate.getMonth()+1).padStart(2,'0') + '-' + String(sundayDate.getDate()).padStart(2,'0');
+
+  const myJobsToday = jobs.filter(j => j.scheduledDate === today && (j.assignedTo === currentUserName || j.assignedTo === 'Both'));
+  const otherJobsToday = jobs.filter(j => j.scheduledDate === today && (j.assignedTo === otherUser || j.assignedTo === 'Both'));
+  const followUps = jobs.filter(j => j.status === 'Follow-up Needed');
+  const overdueInvoices = invoices.filter(i => i.status !== 'Paid' && i.dueDate && i.dueDate < today);
+  const lowStock = inventory.filter(i => Number(i.currentStock) <= Number(i.lowStockThreshold));
+  const weekJobs = jobs.filter(j => j.scheduledDate >= monday && j.scheduledDate <= sunday);
+
+  document.getElementById('headerTitle').textContent = isJake ? "🔧 Leo's Dispatch" : "🌿 Leo's Dispatch";
+
+  document.getElementById('tab-dispatch').innerHTML = `
+    <div class="card">
+      <h2>${isJake ? "Good morning, Jake 🔧" : "Good morning, Doug 🌿"}</h2>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">${fmtDate(today)} · Windsor, ON</div>
+      <div class="quick-actions">
+        <button onclick="openAddJob()">+ New Job</button>
+        <button onclick="switchTab('mileage')">+ Log Mileage</button>
+        <button onclick="openAddCustomer()">+ Add Customer</button>
+      </div>
+    </div>
+
+    ${followUps.length ? `<div class="card" style="border-left:4px solid var(--danger);">
+      <h2 style="color:var(--danger);">⚠️ Follow-up Needed (${followUps.length})</h2>
+      ${followUps.map(j => jobListItemHTML(j)).join('')}
+    </div>` : ''}
+
+    <div class="card">
+      <h2>Today's Jobs</h2>
+      ${myJobsToday.length ? myJobsToday.map(j => jobListItemHTML(j)).join('') : `<div style="font-size:13px;color:var(--text-muted);">No jobs scheduled for you today.</div>`}
+      <div style="margin-top:10px;font-size:13px;color:var(--text-muted);">
+        ${otherUser} has ${otherJobsToday.length} job${otherJobsToday.length===1?'':'s'} today
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>This Week — All Jobs</h2>
+      ${weekJobs.length ? `<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">
+        ${weekJobs.map(j => `
+          <div class="list-item" style="min-width:180px;flex-shrink:0;" onclick="openJobDetail('${j._id}')">
+            <div class="list-item-title">${esc(j.customerName||'Unknown')}</div>
+            <div class="list-item-sub">${fmtDate(j.scheduledDate)}</div>
+            ${tradeBadge(j.trade)}
+          </div>`).join('')}
+      </div>` : `<div style="font-size:13px;color:var(--text-muted);">No jobs scheduled this week.</div>`}
+    </div>
+
+    <div class="report-grid">
+      <div class="report-card" style="${overdueInvoices.length ? 'border:1.5px solid var(--danger);' : ''}">
+        <div class="num" style="${overdueInvoices.length ? 'color:var(--danger);' : ''}">${overdueInvoices.length}</div>
+        <div class="label">Overdue Invoices</div>
+      </div>
+      <div class="report-card" style="${lowStock.length ? 'border:1.5px solid var(--danger);' : ''}">
+        <div class="num" style="${lowStock.length ? 'color:var(--danger);' : ''}">${lowStock.length}</div>
+        <div class="label">Low Stock Items</div>
+      </div>
+    </div>
+  `;
+}
+function jobListItemHTML(j) {
+  return `<div class="list-item" onclick="openJobDetail('${j._id}')">
+    <div class="list-item-top">
+      <span class="list-item-title">${esc(j.customerName||'Unknown')}</span>
+      <span class="status-badge ${statusClass(j.status)}">${j.status}</span>
+    </div>
+    <div class="list-item-sub">${esc(j.customerAddress||'')}${j.scheduledTime ? ' · ' + j.scheduledTime : ''}</div>
+    ${tradeBadge(j.trade)} <span style="font-size:11px;color:var(--text-muted);margin-left:6px;">${j.assignedTo}</span>
+  </div>`;
+}
+
+// ── CUSTOMERS TAB ──
+function renderCustomersTab() {
+  const el = document.getElementById('tab-customers');
+  if (customersView === 'add') { el.innerHTML = customerFormHTML(null); return; }
+  if (customersView === 'detail') { el.innerHTML = customerDetailHTML(activeCustomerId); return; }
+  el.innerHTML = customersListHTML();
+}
+function customersListHTML() {
+  const q = (jobSearchCust || '').toLowerCase();
+  const list = customers
+    .filter(c => !q || (c.name||'').toLowerCase().includes(q) || (c.address||'').toLowerCase().includes(q))
+    .sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  return `
+    <div class="search-bar"><input type="text" placeholder="Search customers..." value="${esc(jobSearchCust||'')}" oninput="jobSearchCust=this.value;renderCustomersTab()"></div>
+    <button class="pill-btn solid" style="width:100%;margin-bottom:12px;" onclick="openAddCustomer()">+ Add Customer</button>
+    ${list.length === 0 ? `<div class="card placeholder">No customers yet.</div>` : list.map(c => {
+      const lastJob = jobs.filter(j => j.customerId === c._id).sort((a,b) => (b.scheduledDate||'').localeCompare(a.scheduledDate||''))[0];
+      return `<div class="list-item" onclick="openCustomerDetail('${c._id}')">
+        <div class="list-item-title">${esc(c.name)}</div>
+        <div class="list-item-sub">${esc(c.address||'')}</div>
+        <div class="list-item-sub">${lastJob ? 'Last job: ' + fmtDate(lastJob.scheduledDate) : 'No jobs yet'}</div>
+      </div>`;
+    }).join('')}
+  `;
+}
+let jobSearchCust = '';
+
+function openAddCustomer() {
+  formOpen = true;
+  customersView = 'add';
+  activeCustomerId = null;
+  renderCustomersTab();
+  switchTabUI('customers');
+}
+function openCustomerDetail(id) {
+  formOpen = false;
+  customersView = 'detail';
+  activeCustomerId = id;
+  renderCustomersTab();
+  switchTabUI('customers');
+}
+function backToCustomersList() {
+  formOpen = false;
+  customersView = 'list';
+  renderCustomersTab();
+}
+function switchTabUI(t) {
+  // ensure correct tab/screen is visible without re-triggering its renderer (caller already rendered)
+  currentTab = t;
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.scroll-content').forEach(el => el.classList.add('hidden'));
+  document.getElementById('tab-btn-' + t).classList.add('active');
+  document.getElementById('tab-' + t).classList.remove('hidden');
+}
+
+function customerFormHTML(c) {
+  c = c || {};
+  const p = c.property || {};
+  return `
+    <div class="back-row"><button class="back-btn" onclick="backToCustomersList()">←</button><h2>${c._id ? 'Edit Customer' : 'New Customer'}</h2></div>
+    <div class="card">
+      <h2>Contact</h2>
+      <div class="form-group"><label class="field-label">Name</label><input id="custName" type="text" value="${esc(c.name||'')}"></div>
+      <div class="form-group"><label class="field-label">Address</label><input id="custAddress" type="text" value="${esc(c.address||'')}"></div>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Phone</label><input id="custPhone" type="text" value="${esc(c.phone||'')}"></div>
+        <div class="form-group"><label class="field-label">Email</label><input id="custEmail" type="text" value="${esc(c.email||'')}"></div>
+      </div>
+      <div class="form-group"><label class="field-label">Notes</label><textarea id="custNotes" rows="2" style="width:100%;padding:10px;border:1.5px solid #d0d7de;border-radius:9px;">${esc(c.notes||'')}</textarea></div>
+    </div>
+    <div class="card">
+      <h2>Property Profile</h2>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Water Line Type</label>
+          <select id="custWaterLine"><option ${p.waterLineType==='Municipal'?'selected':''}>Municipal</option><option ${p.waterLineType==='Well'?'selected':''}>Well</option><option ${p.waterLineType==='Other'?'selected':''}>Other</option></select></div>
+        <div class="form-group"><label class="field-label">Pipe Type</label>
+          <select id="custPipeType">${['Copper','PEX','Iron','Kitec','CPVC','Other'].map(o=>`<option ${p.pipeType===o?'selected':''}>${o}</option>`).join('')}</select></div>
+      </div>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Water Heater Type</label>
+          <select id="custWHType">${['Tank','Tankless','Heat Pump','None'].map(o=>`<option ${p.waterHeaterType===o?'selected':''}>${o}</option>`).join('')}</select></div>
+        <div class="form-group"><label class="field-label">Water Heater Age (yrs)</label><input id="custWHAge" type="number" value="${esc(p.waterHeaterAge||'')}"></div>
+      </div>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Last Pressure Reading</label><input id="custPressure" type="text" value="${esc(p.pressureReading||'')}"></div>
+        <div class="form-group"><label class="field-label">Last Service Date</label><input id="custLastService" type="date" value="${esc(p.lastServiceDate||'')}"></div>
+      </div>
+      <div class="form-group"><label class="field-label">Permit History</label><input id="custPermits" type="text" value="${esc(p.permitHistory||'')}"></div>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Irrigation Zones</label><input id="custZones" type="number" value="${esc(p.irrigationZones||'')}"></div>
+        <div class="form-group"><label class="field-label">Controller Type</label><input id="custController" type="text" value="${esc(p.irrigationControllerType||'')}"></div>
+      </div>
+      <div class="form-group"><label class="field-label">Watch List / Notes</label><input id="custWatch" type="text" value="${esc(p.watchList||'')}"></div>
+    </div>
+    <button class="pill-btn solid" style="width:100%;" onclick="saveCustomer('${c._id||''}')">Save Customer</button>
+    ${c._id ? `<button class="pill-btn" style="width:100%;border-color:var(--danger);color:var(--danger);" onclick="deleteCustomer('${c._id}')">Delete Customer</button>` : ''}
+  `;
+}
+
+function saveCustomer(id) {
+  const name = document.getElementById('custName').value.trim();
+  if (!name) { toast('⚠️ Enter a customer name'); return; }
+  const payload = {
+    name,
+    address: document.getElementById('custAddress').value.trim(),
+    phone: document.getElementById('custPhone').value.trim(),
+    email: document.getElementById('custEmail').value.trim(),
+    notes: document.getElementById('custNotes').value.trim(),
+    property: {
+      waterLineType: document.getElementById('custWaterLine').value,
+      pipeType: document.getElementById('custPipeType').value,
+      waterHeaterType: document.getElementById('custWHType').value,
+      waterHeaterAge: Number(document.getElementById('custWHAge').value) || null,
+      pressureReading: document.getElementById('custPressure').value.trim(),
+      lastServiceDate: document.getElementById('custLastService').value,
+      permitHistory: document.getElementById('custPermits').value.trim(),
+      irrigationZones: Number(document.getElementById('custZones').value) || null,
+      irrigationControllerType: document.getElementById('custController').value.trim(),
+      watchList: document.getElementById('custWatch').value.trim()
+    },
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  formOpen = false;
+  const ref = id ? db.collection('customers').doc(id) : db.collection('customers').doc();
+  const isNew = !id;
+  (isNew ? ref.set({ ...payload, commLog: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() }) : ref.update(payload))
+    .then(() => { toast('Customer saved ✓'); openCustomerDetail(ref.id); })
+    .catch(e => toast('❌ ' + e.message));
+}
+function deleteCustomer(id) {
+  if (!confirm('Delete this customer? Their jobs will remain but lose the link.')) return;
+  db.collection('customers').doc(id).delete().then(() => { toast('Customer deleted'); backToCustomersList(); });
+}
+
+function customerDetailHTML(id) {
+  const c = customers.find(x => x._id === id);
+  if (!c) return `<div class="back-row"><button class="back-btn" onclick="backToCustomersList()">←</button><h2>Not found</h2></div>`;
+  const p = c.property || {};
+  const custJobs = jobs.filter(j => j.customerId === id).sort((a,b) => (b.scheduledDate||'').localeCompare(a.scheduledDate||''));
+  const pastInvoices = incomeReceipts.filter(r => (r.clientName||'').trim().toLowerCase() === (c.name||'').trim().toLowerCase());
+  const commLog = (c.commLog || []).slice().reverse();
+  return `
+    <div class="back-row"><button class="back-btn" onclick="backToCustomersList()">←</button><h2>${esc(c.name)}</h2></div>
+    <div class="card">
+      <h2>Contact</h2>
+      <div class="list-item-sub">${esc(c.address||'')}</div>
+      <div class="list-item-sub">${esc(c.phone||'')} ${c.email ? '· ' + esc(c.email) : ''}</div>
+      ${c.notes ? `<div class="list-item-sub" style="margin-top:6px;">${esc(c.notes)}</div>` : ''}
+      <button class="pill-btn" onclick="openEditCustomer('${id}')" style="margin-top:10px;">Edit</button>
+    </div>
+    <div class="card">
+      <h2>Property Profile</h2>
+      <div class="list-item-sub">Water line: ${esc(p.waterLineType||'—')} · Pipe: ${esc(p.pipeType||'—')}</div>
+      <div class="list-item-sub">Water heater: ${esc(p.waterHeaterType||'—')} ${p.waterHeaterAge ? `(${p.waterHeaterAge} yrs)` : ''}</div>
+      <div class="list-item-sub">Pressure: ${esc(p.pressureReading||'—')} · Last service: ${p.lastServiceDate ? fmtDate(p.lastServiceDate) : '—'}</div>
+      <div class="list-item-sub">Irrigation zones: ${esc(p.irrigationZones||'—')} · Controller: ${esc(p.irrigationControllerType||'—')}</div>
+      ${p.watchList ? `<div class="list-item-sub" style="color:var(--danger);margin-top:6px;">⚠️ ${esc(p.watchList)}</div>` : ''}
+    </div>
+    <div class="card">
+      <h2>Jobs (${custJobs.length})</h2>
+      ${custJobs.length ? custJobs.map(j => jobListItemHTML(j)).join('') : `<div style="font-size:13px;color:var(--text-muted);">No jobs yet.</div>`}
+    </div>
+    ${pastInvoices.length ? `<div class="card">
+      <h2>Past Invoices from Receipt Tracker</h2>
+      ${pastInvoices.map(r => `<div class="list-item-sub" style="margin-bottom:6px;">${fmtDate(r.date)} — $${Number(r.totalInvoiced||0).toFixed(2)} (${esc(r.invoiceNum||'')})</div>`).join('')}
+    </div>` : ''}
+    <div class="card">
+      <h2>Communication Log</h2>
+      <div class="row2" style="margin-bottom:8px;">
+        <select id="commType"><option value="call">Call</option><option value="text">Text</option><option value="email">Email</option><option value="visit">Visit</option></select>
+        <input id="commNote" type="text" placeholder="Note">
+      </div>
+      <button class="pill-btn solid" style="width:100%;" onclick="addCommLog('${id}')">+ Log Entry</button>
+      ${commLog.map(e => `<div class="comm-entry"><strong>${esc(e.type)}</strong> — ${esc(e.note)}<div class="meta">${esc(e.date)} · ${esc(e.by)}</div></div>`).join('')}
+    </div>
+  `;
+}
+function openEditCustomer(id) {
+  formOpen = true;
+  customersView = 'add';
+  activeCustomerId = id;
+  document.getElementById('tab-customers').innerHTML = customerFormHTML(customers.find(c => c._id === id));
+}
+function addCommLog(customerId) {
+  const type = document.getElementById('commType').value;
+  const note = document.getElementById('commNote').value.trim();
+  if (!note) { toast('⚠️ Enter a note'); return; }
+  db.collection('customers').doc(customerId).update({
+    commLog: firebase.firestore.FieldValue.arrayUnion({ date: todayStr(), type, note, by: currentUserName })
+  }).then(() => toast('Logged ✓')).catch(e => toast('❌ ' + e.message));
+}
+
+// ── JOBS TAB ──
+function renderJobsTab() {
+  const el = document.getElementById('tab-jobs');
+  if (jobsView === 'add') { el.innerHTML = jobFormHTML(null); return; }
+  if (jobsView === 'detail') { el.innerHTML = jobDetailHTML(activeJobId); return; }
+  if (jobsView === 'quote') { el.innerHTML = quoteBuilderHTML(activeJobId); return; }
+  if (jobsView === 'invoice') { el.innerHTML = invoiceViewHTML(activeInvoiceId); return; }
+  el.innerHTML = jobsListHTML();
+}
+function jobsListHTML() {
+  const q = jobSearch.toLowerCase();
+  let list = jobs.filter(j => {
+    if (jobFilterTrade !== 'all' && j.trade !== jobFilterTrade) return false;
+    if (jobFilterStatus !== 'all' && j.status !== jobFilterStatus) return false;
+    if (q && !((j.customerName||'').toLowerCase().includes(q) || (j.customerAddress||'').toLowerCase().includes(q) || (j.purpose||'').toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a,b) => (b.scheduledDate||'').localeCompare(a.scheduledDate||''));
+
+  return `
+    <div class="search-bar"><input type="text" placeholder="Search jobs..." value="${esc(jobSearch)}" oninput="jobSearch=this.value;renderJobsTab()"></div>
+    <div class="filter-tabs">
+      ${['all','plumbing','irrigation','combined'].map(t => `<div class="filter-chip ${jobFilterTrade===t?'active':''}" onclick="jobFilterTrade='${t}';renderJobsTab()">${t==='all'?'All':t[0].toUpperCase()+t.slice(1)}</div>`).join('')}
+    </div>
+    <div class="filter-tabs">
+      ${['all', ...STATUS_FLOW].map(s => `<div class="filter-chip ${jobFilterStatus===s?'active':''}" onclick="jobFilterStatus='${s.replace(/'/g,"\\'")}';renderJobsTab()">${s==='all'?'All Status':s}</div>`).join('')}
+    </div>
+    <button class="pill-btn solid" style="width:100%;margin-bottom:12px;" onclick="openAddJob()">+ New Job</button>
+    ${list.length === 0 ? `<div class="card placeholder">No jobs match.</div>` : list.map(j => jobListItemHTML(j)).join('')}
+  `;
+}
+function openAddJob() {
+  formOpen = true;
+  jobsView = 'add';
+  activeJobId = null;
+  jobNewCustomerMode = false;
+  renderJobsTab();
+  switchTabUI('jobs');
+}
+function openJobDetail(id) {
+  formOpen = false;
+  jobsView = 'detail';
+  activeJobId = id;
+  renderJobsTab();
+  switchTabUI('jobs');
+}
+function backToJobsList() {
+  formOpen = false;
+  jobsView = 'list';
+  renderJobsTab();
+}
+let jobNewCustomerMode = false;
+
+function jobFormHTML(j) {
+  j = j || {};
+  return `
+    <div class="back-row"><button class="back-btn" onclick="backToJobsList()">←</button><h2>New Job</h2></div>
+    <div class="card">
+      <div class="form-group">
+        <label class="field-label">Customer</label>
+        ${jobNewCustomerMode ? `
+          <input id="jobNewCustName" type="text" placeholder="New customer name" style="margin-bottom:8px;">
+          <input id="jobNewCustAddress" type="text" placeholder="Address">
+          <div style="font-size:12px;color:var(--blue);cursor:pointer;margin-top:6px;" onclick="jobNewCustomerMode=false;renderJobsTab()">← Choose existing customer instead</div>
+        ` : `
+          <select id="jobCustomerId" onchange="document.getElementById('jobCustomerAddr').value = (this.options[this.selectedIndex].dataset.addr||'')">
+            <option value="">— Select customer —</option>
+            ${customers.map(c => `<option value="${c._id}" data-addr="${esc(c.address||'')}">${esc(c.name)}</option>`).join('')}
+          </select>
+          <input id="jobCustomerAddr" type="text" placeholder="Address" style="margin-top:8px;">
+          <div style="font-size:12px;color:var(--blue);cursor:pointer;margin-top:6px;" onclick="jobNewCustomerMode=true;renderJobsTab()">+ Add new customer instead</div>
+        `}
+      </div>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Trade</label>
+          <select id="jobTrade"><option value="plumbing">Plumbing</option><option value="irrigation">Irrigation</option><option value="combined">Combined</option></select></div>
+        <div class="form-group"><label class="field-label">Assign To</label>
+          <select id="jobAssignedTo"><option value="Jake">Jake</option><option value="Doug">Doug</option><option value="Both">Both</option></select></div>
+      </div>
+      <div class="form-group"><label class="field-label">Status</label>
+        <select id="jobStatus">${STATUS_FLOW.map(s => `<option ${s==='Scheduled'?'selected':''}>${s}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="field-label">Purpose</label><input id="jobPurpose" type="text"></div>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Scheduled Date</label><input id="jobDate" type="date" value="${todayStr()}"></div>
+        <div class="form-group"><label class="field-label">Scheduled Time</label><input id="jobTime" type="time"></div>
+      </div>
+      <div class="form-group"><label class="field-label">Notes</label><textarea id="jobNotes" rows="2" style="width:100%;padding:10px;border:1.5px solid #d0d7de;border-radius:9px;"></textarea></div>
+    </div>
+    <button class="pill-btn solid" style="width:100%;" onclick="saveJob()">Save Job</button>
+  `;
+}
+function saveJob() {
+  let customerId, customerName, customerAddress;
+  if (jobNewCustomerMode) {
+    customerName = document.getElementById('jobNewCustName').value.trim();
+    customerAddress = document.getElementById('jobNewCustAddress').value.trim();
+    if (!customerName) { toast('⚠️ Enter a customer name'); return; }
+  } else {
+    customerId = document.getElementById('jobCustomerId').value;
+    if (!customerId) { toast('⚠️ Select a customer'); return; }
+    const c = customers.find(x => x._id === customerId);
+    customerName = c.name;
+    customerAddress = document.getElementById('jobCustomerAddr').value.trim() || c.address || '';
+  }
+  const date = document.getElementById('jobDate').value;
+  if (!date) { toast('⚠️ Select a scheduled date'); return; }
+
+  const proceed = (cid) => {
+    const payload = {
+      customerId: cid || null,
+      customerName, customerAddress,
+      trade: document.getElementById('jobTrade').value,
+      assignedTo: document.getElementById('jobAssignedTo').value,
+      status: document.getElementById('jobStatus').value,
+      scheduledDate: date,
+      scheduledTime: document.getElementById('jobTime').value,
+      purpose: document.getElementById('jobPurpose').value.trim(),
+      notes: document.getElementById('jobNotes').value.trim(),
+      jobPhotos: [], partsUsed: [], quoteId: null, invoiceId: null, completedAt: null,
+      updatedBy: currentUserName,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    formOpen = false;
+    db.collection('jobs').add(payload).then(ref => { toast('Job saved ✓'); openJobDetail(ref.id); }).catch(e => toast('❌ ' + e.message));
+  };
+
+  if (jobNewCustomerMode) {
+    db.collection('customers').add({ name: customerName, address: customerAddress, phone: '', email: '', notes: '', property: {}, commLog: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() })
+      .then(ref => proceed(ref.id)).catch(e => toast('❌ ' + e.message));
+  } else {
+    proceed(customerId);
+  }
+}
+
+function jobDetailHTML(id) {
+  const j = jobs.find(x => x._id === id);
+  if (!j) return `<div class="back-row"><button class="back-btn" onclick="backToJobsList()">←</button><h2>Not found</h2></div>`;
+  const q = quotes.find(x => x._id === j.quoteId);
+  const inv = invoices.find(x => x._id === j.invoiceId);
+  const commLog = (j.commLog || []).slice().reverse();
+  return `
+    <div class="back-row"><button class="back-btn" onclick="backToJobsList()">←</button><h2>${esc(j.customerName)}</h2></div>
+    <div class="card">
+      <div onclick="openCustomerDetail('${j.customerId}')" style="cursor:${j.customerId?'pointer':'default'};color:${j.customerId?'var(--blue)':'inherit'};font-weight:600;">${esc(j.customerName)}</div>
+      <div class="list-item-sub">${esc(j.customerAddress||'')}</div>
+      <div style="margin:8px 0;">${tradeBadge(j.trade)} <span style="font-size:12px;color:var(--text-muted);margin-left:6px;">Assigned: ${j.assignedTo}</span></div>
+      <div class="stepper">
+        ${STATUS_FLOW.map((s,i) => {
+          const curIdx = STATUS_FLOW.indexOf(j.status);
+          const cls = i < curIdx ? 'done' : i === curIdx ? 'current' : '';
+          return `<div class="step ${cls}" onclick="setJobStatus('${id}','${s}')"><div class="dot">${i < curIdx ? '✓' : i+1}</div>${s}</div>`;
+        }).join('')}
+      </div>
+      <div class="list-item-sub"><strong>Purpose:</strong> ${esc(j.purpose||'—')}</div>
+      <div class="list-item-sub"><strong>Scheduled:</strong> ${fmtDate(j.scheduledDate)} ${esc(j.scheduledTime||'')}</div>
+      ${j.notes ? `<div class="list-item-sub" style="margin-top:6px;"><strong>Notes:</strong> ${esc(j.notes)}</div>` : ''}
+      <button class="pill-btn" onclick="openEditJob('${id}')" style="margin-top:10px;">Edit</button>
+    </div>
+
+    <div class="card">
+      <h2>Parts Used</h2>
+      ${(j.partsUsed||[]).map((p,i) => `<div class="list-item-sub" style="display:flex;justify-content:space-between;">
+        <span>${esc(p.name)} × ${p.quantity}</span><span>$${(p.quantity*p.unitCost).toFixed(2)} <span style="color:var(--danger);cursor:pointer;" onclick="removePart('${id}',${i})">✕</span></span>
+      </div>`).join('')}
+      <div class="row2" style="margin-top:8px;">
+        <input id="partName" type="text" placeholder="Part name">
+        <input id="partQty" type="number" placeholder="Qty" value="1">
+      </div>
+      <input id="partCost" type="number" placeholder="Unit cost" style="margin-top:8px;">
+      <button class="pill-btn solid" style="width:100%;margin-top:8px;" onclick="addPart('${id}')">+ Add Part</button>
+    </div>
+
+    <div class="card">
+      <h2>Job Photos</h2>
+      <div class="photo-grid">
+        ${(j.jobPhotos||[]).map(url => `<img src="${esc(url)}" onclick="window.open('${esc(url)}','_blank')">`).join('')}
+        <label class="add-photo-tile">+<input type="file" accept="image/*" capture="environment" class="hidden" onchange="if(this.files[0]) uploadJobPhoto('${id}', this.files[0])"></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Quote &amp; Invoice</h2>
+      ${q ? `<div class="list-item-sub">Quote: $${Number(q.total||0).toFixed(2)} — ${q.status}</div><button class="pill-btn" onclick="openQuoteBuilder('${id}')">View/Edit Quote</button>`
+          : `<button class="pill-btn solid" onclick="openQuoteBuilder('${id}')">Create Quote</button>`}
+      ${inv ? `<div class="list-item-sub" style="margin-top:8px;">Invoice ${esc(inv.invoiceNum)}: $${Number(inv.total||0).toFixed(2)} — ${inv.status}</div><button class="pill-btn" onclick="openInvoiceView('${inv._id}')">View Invoice</button>`
+          : (q && q.status === 'Accepted' && !q.convertedToInvoice ? `<button class="pill-btn solid" onclick="convertToInvoice('${q._id}')">Convert to Invoice</button>` : '')}
+    </div>
+
+    <div class="card">
+      <h2>Communication Log</h2>
+      <div class="row2" style="margin-bottom:8px;">
+        <select id="jobCommType"><option value="call">Call</option><option value="text">Text</option><option value="email">Email</option><option value="visit">Visit</option></select>
+        <input id="jobCommNote" type="text" placeholder="Note">
+      </div>
+      <button class="pill-btn solid" style="width:100%;" onclick="addJobCommLog('${id}')">+ Log Entry</button>
+      ${commLog.map(e => `<div class="comm-entry"><strong>${esc(e.type)}</strong> — ${esc(e.note)}<div class="meta">${esc(e.date)} · ${esc(e.by)}</div></div>`).join('')}
+    </div>
+
+    <button class="pill-btn" style="width:100%;border-color:var(--danger);color:var(--danger);" onclick="deleteJob('${id}')">Delete Job</button>
+  `;
+}
+function setJobStatus(id, status) {
+  db.collection('jobs').doc(id).update({
+    status, updatedBy: currentUserName, updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    completedAt: status === 'Complete' ? todayStr() : null
+  }).then(() => toast('Status: ' + status)).catch(e => toast('❌ ' + e.message));
+}
+function addPart(jobId) {
+  const name = document.getElementById('partName').value.trim();
+  const quantity = Number(document.getElementById('partQty').value) || 1;
+  const unitCost = Number(document.getElementById('partCost').value) || 0;
+  if (!name) { toast('⚠️ Enter a part name'); return; }
+  db.collection('jobs').doc(jobId).update({
+    partsUsed: firebase.firestore.FieldValue.arrayUnion({ name, quantity, unitCost, total: quantity*unitCost }),
+    updatedBy: currentUserName, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => toast('Part added ✓'));
+}
+function removePart(jobId, idx) {
+  const j = jobs.find(x => x._id === jobId);
+  const parts = (j.partsUsed||[]).filter((_,i) => i !== idx);
+  db.collection('jobs').doc(jobId).update({ partsUsed: parts, updatedBy: currentUserName, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+}
+function addJobCommLog(jobId) {
+  const type = document.getElementById('jobCommType').value;
+  const note = document.getElementById('jobCommNote').value.trim();
+  if (!note) { toast('⚠️ Enter a note'); return; }
+  db.collection('jobs').doc(jobId).update({
+    commLog: firebase.firestore.FieldValue.arrayUnion({ date: todayStr(), type, note, by: currentUserName }),
+    updatedBy: currentUserName, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => toast('Logged ✓'));
+}
+function openEditJob(id) {
+  const j = jobs.find(x => x._id === id);
+  formOpen = true;
+  jobsView = 'add';
+  jobNewCustomerMode = false;
+  document.getElementById('tab-jobs').innerHTML = jobEditFormHTML(j);
+}
+function jobEditFormHTML(j) {
+  return `
+    <div class="back-row"><button class="back-btn" onclick="openJobDetail('${j._id}')">←</button><h2>Edit Job</h2></div>
+    <div class="card">
+      <div class="list-item-sub" style="margin-bottom:10px;">Customer: <strong>${esc(j.customerName)}</strong> (unchanged — edit via Customers tab)</div>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Trade</label>
+          <select id="jobTrade">${['plumbing','irrigation','combined'].map(t=>`<option value="${t}" ${j.trade===t?'selected':''}>${t[0].toUpperCase()+t.slice(1)}</option>`).join('')}</select></div>
+        <div class="form-group"><label class="field-label">Assign To</label>
+          <select id="jobAssignedTo">${['Jake','Doug','Both'].map(a=>`<option ${j.assignedTo===a?'selected':''}>${a}</option>`).join('')}</select></div>
+      </div>
+      <div class="form-group"><label class="field-label">Status</label>
+        <select id="jobStatus">${STATUS_FLOW.map(s => `<option ${j.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="field-label">Purpose</label><input id="jobPurpose" type="text" value="${esc(j.purpose||'')}"></div>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Scheduled Date</label><input id="jobDate" type="date" value="${esc(j.scheduledDate||'')}"></div>
+        <div class="form-group"><label class="field-label">Scheduled Time</label><input id="jobTime" type="time" value="${esc(j.scheduledTime||'')}"></div>
+      </div>
+      <div class="form-group"><label class="field-label">Notes</label><textarea id="jobNotes" rows="2" style="width:100%;padding:10px;border:1.5px solid #d0d7de;border-radius:9px;">${esc(j.notes||'')}</textarea></div>
+    </div>
+    <button class="pill-btn solid" style="width:100%;" onclick="updateJob('${j._id}')">Save Changes</button>
+  `;
+}
+function updateJob(id) {
+  const date = document.getElementById('jobDate').value;
+  if (!date) { toast('⚠️ Select a scheduled date'); return; }
+  formOpen = false;
+  db.collection('jobs').doc(id).update({
+    trade: document.getElementById('jobTrade').value,
+    assignedTo: document.getElementById('jobAssignedTo').value,
+    status: document.getElementById('jobStatus').value,
+    scheduledDate: date,
+    scheduledTime: document.getElementById('jobTime').value,
+    purpose: document.getElementById('jobPurpose').value.trim(),
+    notes: document.getElementById('jobNotes').value.trim(),
+    updatedBy: currentUserName, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => { toast('Job updated ✓'); openJobDetail(id); });
+}
+function deleteJob(id) {
+  if (!confirm('Delete this job?')) return;
+  db.collection('jobs').doc(id).delete().then(() => { toast('Job deleted'); backToJobsList(); });
+}
+
+// ── QUOTE BUILDER ──
+function openQuoteBuilder(jobId) {
+  formOpen = true;
+  jobsView = 'quote';
+  activeJobId = jobId;
+  const j = jobs.find(x => x._id === jobId);
+  const existing = quotes.find(x => x._id === j.quoteId);
+  activeQuoteId = existing ? existing._id : null;
+  quoteLineItems = existing ? JSON.parse(JSON.stringify(existing.lineItems||[])) : [];
+  if (quoteLineItems.length === 0) quoteLineItems.push({ description: '', type: 'labour', quantity: 1, unitCost: 0 });
+  renderJobsTab();
+  switchTabUI('jobs');
+}
+function quoteBuilderHTML(jobId) {
+  const j = jobs.find(x => x._id === jobId);
+  const existing = quotes.find(x => x._id === activeQuoteId);
+  let labourTotal = 0, materialsTotal = 0;
+  quoteLineItems.forEach(li => {
+    const t = (Number(li.quantity)||0) * (Number(li.unitCost)||0);
+    if (li.type === 'labour') labourTotal += t; else materialsTotal += t;
+  });
+  const subtotal = labourTotal + materialsTotal;
+  const hst = subtotal * HST_RATE;
+  const total = subtotal + hst;
+  return `
+    <div class="back-row"><button class="back-btn" onclick="openJobDetail('${jobId}')">←</button><h2>Quote — ${esc(j.customerName)}</h2></div>
+    <div class="card">
+      <h2>Line Items</h2>
+      ${priceList.length ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Price list is active — type to search items.</div>` : ''}
+      ${quoteLineItems.map((li,i) => `
+        <div class="line-item-row">
+          <input type="text" placeholder="Description" value="${esc(li.description)}" onchange="quoteLineItems[${i}].description=this.value">
+          <select onchange="quoteLineItems[${i}].type=this.value;openQuoteBuilderRefresh()">
+            <option value="labour" ${li.type==='labour'?'selected':''}>Labour</option>
+            <option value="material" ${li.type==='material'?'selected':''}>Material</option>
+          </select>
+          <input type="number" placeholder="Qty" value="${li.quantity}" onchange="quoteLineItems[${i}].quantity=Number(this.value);openQuoteBuilderRefresh()">
+          <input type="number" placeholder="$ each" value="${li.unitCost}" onchange="quoteLineItems[${i}].unitCost=Number(this.value);openQuoteBuilderRefresh()">
+          <button class="remove-line" onclick="quoteLineItems.splice(${i},1);openQuoteBuilderRefresh()">✕</button>
+        </div>`).join('')}
+      <button class="pill-btn" onclick="quoteLineItems.push({description:'',type:'labour',quantity:1,unitCost:0});openQuoteBuilderRefresh()">+ Add Line</button>
+    </div>
+    <div class="line-totals">
+      <div class="row"><span>Labour</span><span>$${labourTotal.toFixed(2)}</span></div>
+      <div class="row"><span>Materials</span><span>$${materialsTotal.toFixed(2)}</span></div>
+      <div class="row"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
+      <div class="row"><span>HST (13%)</span><span>$${hst.toFixed(2)}</span></div>
+      <div class="row big"><span>Total</span><span>$${total.toFixed(2)}</span></div>
+    </div>
+    <div class="card">
+      <h2>Status</h2>
+      <select id="quoteStatus">
+        ${['Draft','Sent','Accepted','Declined'].map(s => `<option ${existing && existing.status===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <button class="pill-btn solid" style="width:100%;" onclick="saveQuote('${jobId}')">Save Quote</button>
+  `;
+}
+function openQuoteBuilderRefresh() {
+  document.getElementById('tab-jobs').innerHTML = quoteBuilderHTML(activeJobId);
+}
+function saveQuote(jobId) {
+  const validLines = quoteLineItems.filter(li => li.description.trim());
+  if (!validLines.length) { toast('⚠️ Add at least one line item'); return; }
+  const j = jobs.find(x => x._id === jobId);
+  let labourTotal = 0, materialsTotal = 0;
+  validLines.forEach(li => {
+    const t = (Number(li.quantity)||0) * (Number(li.unitCost)||0);
+    li.total = t;
+    if (li.type === 'labour') labourTotal += t; else materialsTotal += t;
+  });
+  const subtotal = labourTotal + materialsTotal;
+  const hst = subtotal * HST_RATE;
+  const total = subtotal + hst;
+  const status = document.getElementById('quoteStatus').value;
+  const payload = {
+    jobId, customerId: j.customerId, customerName: j.customerName,
+    date: todayStr(), lineItems: validLines, labourTotal, materialsTotal, subtotal, hst, total,
+    status, convertedToInvoice: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  formOpen = false;
+  const ref = activeQuoteId ? db.collection('quotes').doc(activeQuoteId) : db.collection('quotes').doc();
+  const isNew = !activeQuoteId;
+  (isNew ? ref.set({ ...payload, createdAt: firebase.firestore.FieldValue.serverTimestamp() }) : ref.update(payload))
+    .then(() => db.collection('jobs').doc(jobId).update({ quoteId: ref.id, updatedBy: currentUserName, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }))
+    .then(() => { toast('Quote saved ✓'); openJobDetail(jobId); })
+    .catch(e => toast('❌ ' + e.message));
+}
+function convertToInvoice(quoteId) {
+  const q = quotes.find(x => x._id === quoteId);
+  if (!q) return;
+  const year = new Date().getFullYear();
+  const seq = invoices.filter(i => (i.invoiceNum||'').includes('DISP-' + year)).length + 1;
+  const invoiceNum = `DISP-${year}-${String(seq).padStart(3,'0')}`;
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + 14);
+  const dueDateStr = dueDate.getFullYear() + '-' + String(dueDate.getMonth()+1).padStart(2,'0') + '-' + String(dueDate.getDate()).padStart(2,'0');
+  const payload = {
+    quoteId, jobId: q.jobId, customerId: q.customerId, customerName: q.customerName,
+    invoiceNum, date: todayStr(), dueDate: dueDateStr,
+    lineItems: q.lineItems, labourTotal: q.labourTotal, materialsTotal: q.materialsTotal,
+    subtotal: q.subtotal, hst: q.hst, total: q.total, deposit: 0, balance: q.total,
+    status: 'Unpaid', paidDate: null,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  db.collection('invoices').add(payload).then(ref => {
+    return Promise.all([
+      db.collection('quotes').doc(quoteId).update({ convertedToInvoice: true }),
+      db.collection('jobs').doc(q.jobId).update({ invoiceId: ref.id, updatedBy: currentUserName, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+    ]).then(() => ref.id);
+  }).then(invId => { toast('Invoice created ✓'); openInvoiceView(invId); }).catch(e => toast('❌ ' + e.message));
+}
+
+// ── INVOICE VIEW ──
+function openInvoiceView(id) {
+  formOpen = false;
+  jobsView = 'invoice';
+  activeInvoiceId = id;
+  renderJobsTab();
+  switchTabUI('jobs');
+}
+function invoiceViewHTML(id) {
+  const inv = invoices.find(x => x._id === id);
+  if (!inv) return `<div class="back-row"><button class="back-btn" onclick="backToJobsList()">←</button><h2>Not found</h2></div>`;
+  const isOverdue = inv.status !== 'Paid' && inv.dueDate && inv.dueDate < todayStr();
+  return `
+    <div class="back-row"><button class="back-btn" onclick="openJobDetail('${inv.jobId}')">←</button><h2>${esc(inv.invoiceNum)}</h2></div>
+    <div class="card">
+      <div class="list-item-sub">${esc(inv.customerName)}</div>
+      <div class="list-item-sub">Date: ${fmtDate(inv.date)} · Due: ${fmtDate(inv.dueDate)}</div>
+      <div style="margin:8px 0;"><span class="status-badge" style="background:${isOverdue ? 'var(--danger)' : inv.status==='Paid' ? 'var(--green)' : 'var(--blue)'};">${isOverdue ? 'Overdue' : inv.status}</span></div>
+      ${(inv.lineItems||[]).map(li => `<div class="list-item-sub" style="display:flex;justify-content:space-between;"><span>${esc(li.description)} (${li.type}) × ${li.quantity}</span><span>$${(li.quantity*li.unitCost).toFixed(2)}</span></div>`).join('')}
+    </div>
+    <div class="line-totals">
+      <div class="row"><span>Subtotal</span><span>$${Number(inv.subtotal||0).toFixed(2)}</span></div>
+      <div class="row"><span>HST (13%)</span><span>$${Number(inv.hst||0).toFixed(2)}</span></div>
+      <div class="row"><span>Total</span><span>$${Number(inv.total||0).toFixed(2)}</span></div>
+      <div class="row"><span>Deposit</span><span>$${Number(inv.deposit||0).toFixed(2)}</span></div>
+      <div class="row big"><span>Balance Owing</span><span>$${Number(inv.balance||0).toFixed(2)}</span></div>
+    </div>
+    <div class="card">
+      <div class="form-group"><label class="field-label">Deposit Received</label><input id="invDeposit" type="number" value="${inv.deposit||0}"></div>
+      <button class="pill-btn" onclick="updateDeposit('${id}')">Update Deposit</button>
+      ${inv.status !== 'Paid' ? `<button class="pill-btn solid" onclick="markInvoicePaid('${id}')">Mark as Paid</button>` : ''}
+      <button class="pill-btn" onclick="printInvoice('${id}')">Print / Export</button>
+    </div>
+  `;
+}
+function updateDeposit(id) {
+  const inv = invoices.find(x => x._id === id);
+  const deposit = Number(document.getElementById('invDeposit').value) || 0;
+  const balance = Number(inv.total||0) - deposit;
+  db.collection('invoices').doc(id).update({ deposit, balance, status: balance <= 0 ? 'Paid' : (deposit > 0 ? 'Partial' : 'Unpaid'), updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+    .then(() => toast('Deposit updated ✓'));
+}
+function markInvoicePaid(id) {
+  db.collection('invoices').doc(id).update({ status: 'Paid', balance: 0, paidDate: todayStr(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+    .then(() => toast('Marked paid ✓'));
+}
+function printInvoice(id) {
+  const inv = invoices.find(x => x._id === id);
+  const w = window.open('', '_blank');
+  w.document.write(`
+    <html><head><title>${esc(inv.invoiceNum)}</title>
+    <style>body{font-family:Arial,sans-serif;padding:40px;color:#1a1a1a;} h1{color:#1A5276;} table{width:100%;border-collapse:collapse;margin:20px 0;} td,th{padding:8px;border-bottom:1px solid #ddd;text-align:left;} .total-row{font-weight:bold;font-size:18px;}</style>
+    </head><body>
+    <h1>Leo's Plumbing and Irrigation</h1>
+    <h2>Invoice ${esc(inv.invoiceNum)}</h2>
+    <p>Bill to: ${esc(inv.customerName)}<br>Date: ${fmtDate(inv.date)} · Due: ${fmtDate(inv.dueDate)}</p>
+    <table><tr><th>Description</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Total</th></tr>
+    ${(inv.lineItems||[]).map(li => `<tr><td>${esc(li.description)}</td><td>${li.type}</td><td>${li.quantity}</td><td>$${Number(li.unitCost).toFixed(2)}</td><td>$${(li.quantity*li.unitCost).toFixed(2)}</td></tr>`).join('')}
+    </table>
+    <p>Subtotal: $${Number(inv.subtotal||0).toFixed(2)}<br>HST (13%): $${Number(inv.hst||0).toFixed(2)}<br>Deposit: $${Number(inv.deposit||0).toFixed(2)}</p>
+    <p class="total-row">Balance Owing: $${Number(inv.balance||0).toFixed(2)}</p>
+    </body></html>
+  `);
+  w.document.close();
+}
+
+// ── MILEAGE TAB ──
+function renderMileageTab() {
+  const el = document.getElementById('tab-mileage');
+  el.innerHTML = `
+    <div class="filter-tabs">
+      <div class="filter-chip ${mileageSubTab==='trip'?'active':''}" onclick="mileageSubTab='trip';renderMileageTab()">Trip Log</div>
+      <div class="filter-chip ${mileageSubTab==='truck'?'active':''}" onclick="mileageSubTab='truck';renderMileageTab()">Truck Use %</div>
+    </div>
+    ${mileageSubTab === 'trip' ? tripLogHTML() : truckUseHTML()}
+  `;
+}
+function tripLogHTML() {
+  const myLogs = mileageLogs.filter(m => m.userName === currentUserName);
+  const month = todayStr().slice(0,7);
+  const monthTotal = myLogs.filter(m => (m.date||'').startsWith(month)).reduce((s,m) => s + Number(m.km||0), 0);
+  const year = todayStr().slice(0,4);
+  const yearTotal = myLogs.filter(m => (m.date||'').startsWith(year)).reduce((s,m) => s + Number(m.km||0), 0);
+  return `
+    <div class="card">
+      <h2>Log a Trip</h2>
+      <div class="form-group"><label class="field-label">Date</label><input id="tripDate" type="date" value="${todayStr()}"></div>
+      <div class="form-group"><label class="field-label">From</label><input id="tripFrom" type="text" placeholder="Starting address"></div>
+      <div class="form-group"><label class="field-label">To</label><input id="tripTo" type="text" placeholder="Destination address"></div>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">KM</label><input id="tripKm" type="number" placeholder="e.g. 14.2"></div>
+        <div class="form-group"><label class="field-label">Link to Job (optional)</label>
+          <select id="tripJobId"><option value="">— none —</option>${jobs.map(j => `<option value="${j._id}">${esc(j.customerName)} (${fmtDate(j.scheduledDate)})</option>`).join('')}</select></div>
+      </div>
+      <div class="form-group"><label class="field-label">Purpose</label><input id="tripPurpose" type="text"></div>
+      <button class="pill-btn solid" style="width:100%;" onclick="saveTripLog()">Save Trip</button>
+    </div>
+    <div class="report-grid">
+      <div class="report-card"><div class="num">${monthTotal.toFixed(1)}</div><div class="label">KM this month</div></div>
+      <div class="report-card"><div class="num">${yearTotal.toFixed(1)}</div><div class="label">KM this year</div></div>
+    </div>
+    <button class="pill-btn" style="width:100%;margin-bottom:12px;" onclick="exportMileageCSV()">Export CSV</button>
+    <div class="card">
+      <h2>Your Trips</h2>
+      ${myLogs.length ? myLogs.slice(0,50).map(m => `<div class="list-item-sub" style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:7px 0;">
+        <span>${fmtDate(m.date)} — ${esc(m.from)} → ${esc(m.to)}</span><span>${Number(m.km).toFixed(1)} km</span>
+      </div>`).join('') : `<div style="font-size:13px;color:var(--text-muted);">No trips logged yet.</div>`}
+    </div>
+  `;
+}
+function saveTripLog() {
+  const date = document.getElementById('tripDate').value;
+  const from = document.getElementById('tripFrom').value.trim();
+  const to = document.getElementById('tripTo').value.trim();
+  const km = Number(document.getElementById('tripKm').value);
+  const purpose = document.getElementById('tripPurpose').value.trim();
+  const jobId = document.getElementById('tripJobId').value || null;
+  if (!date || !from || !to || !km) { toast('⚠️ Fill in date, from, to, and KM'); return; }
+  db.collection('mileageLog').add({
+    userId: currentUserName, userName: currentUserName, date, startAddress: from, endAddress: to,
+    km, purpose, jobId, sheetsSync: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(ref => {
+    toast('Trip saved ✓');
+    renderMileageTab();
+    doMileageSync(ref.id, { date, driver: currentUserName, from, to, km: String(km), purpose, jobNum: jobId || '' });
+  }).catch(e => toast('❌ ' + e.message));
+}
+async function doMileageSync(docId, data) {
+  if (!SCRIPT_URL) return;
+  try {
+    const params = new URLSearchParams({ action: 'mileage', spreadsheetId: SPREADSHEET_ID, ...data });
+    const res = await fetch(`${SCRIPT_URL}?${params}`);
+    const json = await res.json();
+    if (json.ok) db.collection('mileageLog').doc(docId).update({ sheetsSync: true }).catch(() => {});
+  } catch(e) { console.error('[Mileage Sheets] sync failed:', e.message); }
+}
+function exportMileageCSV() {
+  const myLogs = mileageLogs.filter(m => m.userName === currentUserName);
+  const rows = [['Date','From','To','KM','Purpose'], ...myLogs.map(m => [m.date, m.startAddress, m.endAddress, m.km, m.purpose])];
+  downloadCSV(`mileage-${currentUserName}-${todayStr()}.csv`, rows);
+}
+
+function truckUseHTML() {
+  const myTruckLogs = truckLogs.filter(t => t.userName === currentUserName);
+  const year = todayStr().slice(0,4);
+  const yearLogs = myTruckLogs.filter(t => (t.weekStarting||'').startsWith(year));
+  const yearWorkKm = yearLogs.reduce((s,t) => s + Number(t.workKm||0), 0);
+  const yearTotalKm = yearLogs.reduce((s,t) => s + Number(t.totalKm||0), 0);
+  const yearPct = yearTotalKm > 0 ? (yearWorkKm / yearTotalKm * 100).toFixed(1) : '0.0';
+  return `
+    <div class="card">
+      <h2>Weekly Odometer</h2>
+      <div class="form-group"><label class="field-label">Week of (Monday)</label><input id="truckWeek" type="date" value="${mondayOf(todayStr())}"></div>
+      <div class="row2">
+        <div class="form-group"><label class="field-label">Odometer Start</label><input id="truckOdoStart" type="number"></div>
+        <div class="form-group"><label class="field-label">Odometer End</label><input id="truckOdoEnd" type="number"></div>
+      </div>
+      <button class="pill-btn solid" style="width:100%;" onclick="saveTruckLog()">Save Week</button>
+    </div>
+    <div class="report-grid">
+      <div class="report-card"><div class="num">${yearPct}%</div><div class="label">${currentUserName}'s truck work use (${year})</div></div>
+      <div class="report-card"><div class="num">${yearWorkKm.toFixed(0)}</div><div class="label">Work KM (${year})</div></div>
+    </div>
+    <div class="card">
+      <h2>Weekly History</h2>
+      ${myTruckLogs.length ? myTruckLogs.map(t => `<div class="list-item-sub" style="border-bottom:1px solid var(--border);padding:7px 0;">
+        Week of ${fmtDate(t.weekStarting)} — Total ${Number(t.totalKm).toFixed(0)} km, Work ${Number(t.workKm).toFixed(0)} km (${Number(t.workPercent).toFixed(1)}%)
+      </div>`).join('') : `<div style="font-size:13px;color:var(--text-muted);">No weekly logs yet.</div>`}
+    </div>
+    <button class="pill-btn" style="width:100%;" onclick="exportTaxSummary()">Export Tax Summary</button>
+  `;
+}
+function saveTruckLog() {
+  const weekStarting = document.getElementById('truckWeek').value;
+  const odometerStart = Number(document.getElementById('truckOdoStart').value);
+  const odometerEnd = Number(document.getElementById('truckOdoEnd').value);
+  if (!weekStarting || !odometerStart || !odometerEnd || odometerEnd <= odometerStart) { toast('⚠️ Check odometer values'); return; }
+  const weekEndDate = new Date(weekStarting + 'T00:00:00');
+  weekEndDate.setDate(weekEndDate.getDate() + 6);
+  const weekEnd = weekEndDate.getFullYear() + '-' + String(weekEndDate.getMonth()+1).padStart(2,'0') + '-' + String(weekEndDate.getDate()).padStart(2,'0');
+  const workKm = mileageLogs.filter(m => m.userName === currentUserName && m.date >= weekStarting && m.date <= weekEnd).reduce((s,m) => s + Number(m.km||0), 0);
+  const totalKm = odometerEnd - odometerStart;
+  const workPercent = totalKm > 0 ? Number((workKm / totalKm * 100).toFixed(1)) : 0;
+  db.collection('truckLog').add({
+    userId: currentUserName, userName: currentUserName, weekStarting, odometerStart, odometerEnd,
+    totalKm, workKm, workPercent, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => { toast('Week saved ✓'); renderMileageTab(); }).catch(e => toast('❌ ' + e.message));
+}
+function exportTaxSummary() {
+  const year = todayStr().slice(0,4);
+  const lines = [`LEO'S PLUMBING AND IRRIGATION — TAX SUMMARY ${year}`, ''];
+  ['Jake','Doug'].forEach(name => {
+    const tLogs = truckLogs.filter(t => t.userName === name && (t.weekStarting||'').startsWith(year));
+    const workKm = tLogs.reduce((s,t) => s + Number(t.workKm||0), 0);
+    const totalKm = tLogs.reduce((s,t) => s + Number(t.totalKm||0), 0);
+    const pct = totalKm > 0 ? (workKm/totalKm*100).toFixed(1) : '0.0';
+    lines.push(`${name}'s truck: ${totalKm.toFixed(0)} km total, ${workKm.toFixed(0)} km work, ${pct}% deductible`);
+  });
+  const yearInvoices = invoices.filter(i => (i.date||'').startsWith(year));
+  const totalInvoiced = yearInvoices.reduce((s,i) => s + Number(i.total||0), 0);
+  lines.push('', `Total Invoiced (${year}): $${totalInvoiced.toFixed(2)}`);
+  downloadCSV(`tax-summary-${year}.csv`, lines.map(l => [l]));
+  toast('Tax summary exported ✓');
+}
+
+// ── REPORTS TAB ──
+let invoiceFilter = 'all';
+function renderReportsTab() {
+  const year = todayStr().slice(0,4);
+  const yearInvoices = invoices.filter(i => (i.date||'').startsWith(year));
+  const totalInvoiced = yearInvoices.reduce((s,i) => s + Number(i.total||0), 0);
+  const totalOutstanding = invoices.filter(i => i.status !== 'Paid').reduce((s,i) => s + Number(i.balance||0), 0);
+  const completedJobs = jobs.filter(j => j.status === 'Complete' && (j.completedAt||'').startsWith(year));
+  const plumbingJobs = completedJobs.filter(j => j.trade === 'plumbing').length;
+  const irrigationJobs = completedJobs.filter(j => j.trade === 'irrigation').length;
+  const combinedJobs = completedJobs.filter(j => j.trade === 'combined').length;
+  const maxTrade = Math.max(plumbingJobs, irrigationJobs, combinedJobs, 1);
+
+  const truckStats = ['Jake','Doug'].map(name => {
+    const tLogs = truckLogs.filter(t => t.userName === name && (t.weekStarting||'').startsWith(year));
+    const workKm = tLogs.reduce((s,t) => s + Number(t.workKm||0), 0);
+    const totalKm = tLogs.reduce((s,t) => s + Number(t.totalKm||0), 0);
+    const pct = totalKm > 0 ? (workKm/totalKm*100).toFixed(1) : '0.0';
+    return { name, workKm, pct };
+  });
+
+  const monthlyKm = {};
+  mileageLogs.forEach(m => { const mo = (m.date||'').slice(0,7); if (mo.startsWith(year)) monthlyKm[mo] = (monthlyKm[mo]||0) + Number(m.km||0); });
+  const months = Object.keys(monthlyKm).sort();
+  const maxKm = Math.max(...months.map(m => monthlyKm[m]), 1);
+
+  let filteredInvoices = invoices;
+  if (invoiceFilter === 'unpaid') filteredInvoices = invoices.filter(i => i.status === 'Unpaid' || i.status === 'Partial');
+  if (invoiceFilter === 'overdue') filteredInvoices = invoices.filter(i => i.status !== 'Paid' && i.dueDate && i.dueDate < todayStr());
+  if (invoiceFilter === 'paid') filteredInvoices = invoices.filter(i => i.status === 'Paid');
+
+  document.getElementById('tab-reports').innerHTML = `
+    <div class="report-grid">
+      <div class="report-card"><div class="num">$${totalInvoiced.toFixed(0)}</div><div class="label">Total Invoiced (${year})</div></div>
+      <div class="report-card" style="${totalOutstanding>0?'border:1.5px solid var(--danger);':''}"><div class="num" style="${totalOutstanding>0?'color:var(--danger);':''}">$${totalOutstanding.toFixed(0)}</div><div class="label">Outstanding</div></div>
+      <div class="report-card"><div class="num">${completedJobs.length}</div><div class="label">Jobs Completed (${year})</div></div>
+      ${truckStats.map(t => `<div class="report-card"><div class="num">${t.pct}%</div><div class="label">${t.name}'s truck use</div></div>`).join('')}
+    </div>
+
+    <div class="card">
+      <h2>Jobs by Trade</h2>
+      <div class="bar-row"><span class="bar-label">Plumbing</span><div class="bar-track"><div class="bar-fill" style="width:${plumbingJobs/maxTrade*100}%;background:var(--blue);"></div></div><span>${plumbingJobs}</span></div>
+      <div class="bar-row"><span class="bar-label">Irrigation</span><div class="bar-track"><div class="bar-fill" style="width:${irrigationJobs/maxTrade*100}%;background:var(--green);"></div></div><span>${irrigationJobs}</span></div>
+      <div class="bar-row"><span class="bar-label">Combined</span><div class="bar-track"><div class="bar-fill" style="width:${combinedJobs/maxTrade*100}%;background:var(--purple);"></div></div><span>${combinedJobs}</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Mileage Report — ${year}</h2>
+      ${months.length ? months.map(m => `<div class="bar-row"><span class="bar-label">${m}</span><div class="bar-track"><div class="bar-fill" style="width:${monthlyKm[m]/maxKm*100}%;"></div></div><span>${monthlyKm[m].toFixed(0)} km</span></div>`).join('') : `<div style="font-size:13px;color:var(--text-muted);">No mileage logged yet.</div>`}
+    </div>
+
+    <div class="card">
+      <h2>Invoice Report</h2>
+      <div class="filter-tabs">
+        ${[['all','All'],['unpaid','Unpaid'],['overdue','Overdue'],['paid','Paid']].map(([k,l]) => `<div class="filter-chip ${invoiceFilter===k?'active':''}" onclick="invoiceFilter='${k}';renderReportsTab()">${l}</div>`).join('')}
+      </div>
+      ${filteredInvoices.length ? filteredInvoices.map(i => {
+        const overdue = i.status !== 'Paid' && i.dueDate && i.dueDate < todayStr();
+        return `<div class="list-item" onclick="openInvoiceFromReports('${i._id}')">
+          <div class="list-item-top"><span class="list-item-title">${esc(i.invoiceNum)} — ${esc(i.customerName)}</span>
+          <span class="status-badge" style="background:${overdue?'var(--danger)':i.status==='Paid'?'var(--green)':'var(--blue)'};">${overdue?'Overdue':i.status}</span></div>
+          <div class="list-item-sub" style="${overdue?'color:var(--danger);font-weight:600;':''}">$${Number(i.total||0).toFixed(2)} — balance $${Number(i.balance||0).toFixed(2)}</div>
+        </div>`;
+      }).join('') : `<div style="font-size:13px;color:var(--text-muted);">No invoices match.</div>`}
+    </div>
+
+    <button class="pill-btn solid" style="width:100%;" onclick="exportTaxSummary()">Export Tax Summary (CSV)</button>
+  `;
+}
+function openInvoiceFromReports(id) {
+  activeInvoiceId = id;
+  jobsView = 'invoice';
+  formOpen = false;
+  switchTab('jobs');
+}
+
+// ── SETTINGS TAB ──
+function renderSettingsTab() {
+  document.getElementById('tab-settings').innerHTML = `
+    <div class="card">
+      <h2>Account</h2>
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:10px;">Signed in as <strong>${esc(currentUserName)}</strong></div>
+      <div class="quick-actions">
+        <button onclick="switchUser()">Switch User</button>
+        <button onclick="lockApp()">Lock App</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Notifications</h2>
+      ${[['jobAdded','Job added alerts'],['statusChange','Status change alerts'],['overdueInvoice','Overdue invoice alerts'],['lowStock','Low stock alerts']].map(([k,l]) => `
+        <div class="toggle-row"><span>${l}</span>
+          <label class="switch"><input type="checkbox" ${notifPrefs[k]?'checked':''} onchange="toggleNotif('${k}',this.checked)"><span class="slider"></span></label>
+        </div>`).join('')}
+    </div>
+
+    <div class="card">
+      <h2>💰 Supplier Pricing</h2>
+      ${priceList.length ? `<div style="font-size:13px;color:var(--text-muted);">${priceList.length} active price list item${priceList.length===1?'':'s'} — quote builder is live.</div>` :
+      `<div style="font-size:13px;color:var(--text-muted);">Price list not yet loaded. Once you receive pricing from your supplier, the quote builder will read it automatically from the priceList collection.</div>
+      <button class="pill-btn" disabled style="opacity:0.5;cursor:default;">Import Price List — CSV (coming soon)</button>`}
+    </div>
+
+    <div class="card">
+      <h2>Inventory ${(() => { const low = inventory.filter(i=>Number(i.currentStock)<=Number(i.lowStockThreshold)); return low.length ? `<span class="low-stock-badge">${low.length} low</span>` : ''; })()}</h2>
+      ${inventory.map(i => {
+        const low = Number(i.currentStock) <= Number(i.lowStockThreshold);
+        return `<div class="list-item-top" style="margin-bottom:6px;">
+          <span>${esc(i.name)} ${low?'<span class="low-stock-badge">low</span>':''}</span>
+          <span>${i.currentStock} ${esc(i.unit||'')} <span style="color:var(--danger);cursor:pointer;margin-left:6px;" onclick="deleteInventoryItem('${i._id}')">✕</span></span>
+        </div>`;
+      }).join('')}
+      <div class="row2" style="margin-top:8px;">
+        <input id="invName" type="text" placeholder="Item name">
+        <input id="invUnit" type="text" placeholder="Unit (e.g. ea, ft)">
+      </div>
+      <div class="row2" style="margin-top:8px;">
+        <input id="invStock" type="number" placeholder="Current stock">
+        <input id="invThreshold" type="number" placeholder="Low stock threshold">
+      </div>
+      <button class="pill-btn solid" style="width:100%;margin-top:8px;" onclick="addInventoryItem()">+ Add Item</button>
+    </div>
+
+    <div class="card">
+      <h2>App Info</h2>
+      <div style="font-size:13px;color:var(--text-muted);">Leo's Dispatch<br>Leo's Plumbing and Irrigation<br><a href="https://ciampagliaj.github.io/leos-pwa/" target="_blank" style="color:var(--blue);">Open Leo's Receipt Tracker</a></div>
+    </div>
+  `;
+}
+function toggleNotif(key, val) {
+  notifPrefs[key] = val;
+  localStorage.setItem('leosDispatchNotifPrefs', JSON.stringify(notifPrefs));
+}
+function addInventoryItem() {
+  const name = document.getElementById('invName').value.trim();
+  const unit = document.getElementById('invUnit').value.trim();
+  const currentStock = Number(document.getElementById('invStock').value) || 0;
+  const lowStockThreshold = Number(document.getElementById('invThreshold').value) || 0;
+  if (!name) { toast('⚠️ Enter an item name'); return; }
+  db.collection('inventory').add({ name, category: '', unit, currentStock, lowStockThreshold, notes: '', updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+    .then(() => toast('Item added ✓')).catch(e => toast('❌ ' + e.message));
+}
+function deleteInventoryItem(id) {
+  if (!confirm('Delete this inventory item?')) return;
+  db.collection('inventory').doc(id).delete();
 }
 
 // ── SERVICE WORKER ──
