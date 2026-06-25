@@ -1146,7 +1146,7 @@ function jobDetailHTML(id) {
 
     <div class="card">
       <h2>Quote &amp; Invoice</h2>
-      ${q ? `<div class="list-item-sub">Quote: $${Number(q.total||0).toFixed(2)} — ${q.status}</div><button class="pill-btn" onclick="openQuoteBuilder('${id}')">View/Edit Quote</button>`
+      ${q ? `<div class="list-item-sub">Quote: $${Number(q.total||0).toFixed(2)} — ${q.status}</div><button class="pill-btn" onclick="openQuoteBuilder('${id}')">View/Edit Quote</button><button class="pill-btn" onclick="emailDocument('quote','${q._id}')">📧 Email Quote</button>`
           : `<button class="pill-btn solid" onclick="openQuoteBuilder('${id}')">Create Quote</button>`}
       ${inv ? `<div class="list-item-sub" style="margin-top:8px;">Invoice ${esc(inv.invoiceNum)}: $${Number(inv.total||0).toFixed(2)} — ${inv.status}</div><button class="pill-btn" onclick="openInvoiceView('${inv._id}')">View Invoice</button>`
           : (q && q.status === 'Accepted' && !q.convertedToInvoice ? `<button class="pill-btn solid" onclick="convertToInvoice('${q._id}')">Convert to Invoice</button>` : '')}
@@ -1248,14 +1248,22 @@ function deleteJob(id) {
 // ── QUOTE BUILDER ──
 let quoteServiceFee = 0; // drain cleaning / call-out fee, manual flat amount
 let showReceiptSearch = false;
+let quotePrevStatus = null; // tracks status before this edit, so we only export-to-Drive on the Draft/Sent -> Accepted transition
+let editingInvoiceId = null; // set when the builder is editing an existing invoice's line items
+let creatingInvoiceFromQuoteId = null; // set when the builder is finalizing a brand-new invoice converted from a quote
 
-function plumbingLabourCost(hours) {
-  hours = Number(hours) || 0;
-  if (hours <= 0) return 0;
-  return PLUMBING_LABOUR_FIRST_HOUR + Math.max(0, hours - 1) * PLUMBING_LABOUR_ADDL_HOUR;
+// Lead technician: first hour is automatic/included, you only enter hours AFTER that first hour.
+function leadLabourCost(additionalHours) {
+  additionalHours = Math.max(0, Number(additionalHours) || 0);
+  return PLUMBING_LABOUR_FIRST_HOUR + additionalHours * PLUMBING_LABOUR_ADDL_HOUR;
+}
+// Helper: own hours, own manually-set hourly rate, no first-hour premium.
+function helperLabourCost(hours, rate) {
+  return (Number(hours) || 0) * (Number(rate) || 0);
 }
 function lineItemTotal(li) {
-  if (li.kind === 'plumbing-labour') return plumbingLabourCost(li.hours);
+  if (li.kind === 'labour-lead') return leadLabourCost(li.additionalHours);
+  if (li.kind === 'labour-helper') return helperLabourCost(li.hours, li.rate);
   if (li.kind === 'material') return (Number(li.quantity)||0) * (Number(li.unitCost)||0) * (1 + MATERIAL_MARKUP);
   return (Number(li.quantity)||0) * (Number(li.unitCost)||0); // 'other' — no markup
 }
@@ -1263,7 +1271,7 @@ function quoteTotals() {
   let labourTotal = 0, materialsTotal = 0, materialsCostTotal = 0, otherTotal = 0;
   quoteLineItems.forEach(li => {
     const t = lineItemTotal(li);
-    if (li.kind === 'plumbing-labour') labourTotal += t;
+    if (li.kind === 'labour-lead' || li.kind === 'labour-helper') labourTotal += t;
     else if (li.kind === 'material') { materialsTotal += t; materialsCostTotal += (Number(li.quantity)||0) * (Number(li.unitCost)||0); }
     else otherTotal += t;
   });
@@ -1279,20 +1287,24 @@ function openQuoteBuilder(jobId) {
   jobsView = 'quote';
   activeJobId = jobId;
   showReceiptSearch = false;
+  editingInvoiceId = null;
+  creatingInvoiceFromQuoteId = null;
   const j = jobs.find(x => x._id === jobId);
   const existing = quotes.find(x => x._id === j.quoteId);
   activeQuoteId = existing ? existing._id : null;
   quoteLineItems = existing ? JSON.parse(JSON.stringify(existing.lineItems||[])) : [];
   quoteServiceFee = existing ? Number(existing.serviceCallFee||0) : 0;
+  quotePrevStatus = existing ? existing.status : null;
   receiptSearchQuery = j.customerName || '';
   renderJobsTab();
   switchTabUI('jobs');
 }
 function quoteBuilderHTML(jobId) {
   const j = jobs.find(x => x._id === jobId);
-  const existing = quotes.find(x => x._id === activeQuoteId);
+  const existing = editingInvoiceId ? invoices.find(x => x._id === editingInvoiceId) : quotes.find(x => x._id === activeQuoteId);
   const t = quoteTotals();
-  const labourLines = quoteLineItems.map((li,i) => ({li,i})).filter(x => x.li.kind === 'plumbing-labour');
+  const leadLines = quoteLineItems.map((li,i) => ({li,i})).filter(x => x.li.kind === 'labour-lead');
+  const helperLines = quoteLineItems.map((li,i) => ({li,i})).filter(x => x.li.kind === 'labour-helper');
   const materialLines = quoteLineItems.map((li,i) => ({li,i})).filter(x => x.li.kind === 'material');
   const otherLines = quoteLineItems.map((li,i) => ({li,i})).filter(x => x.li.kind === 'other');
 
@@ -1302,19 +1314,31 @@ function quoteBuilderHTML(jobId) {
   ).slice(0, 25);
 
   return `
-    <div class="back-row"><button class="back-btn" onclick="openJobDetail('${jobId}')">←</button><h2>Quote — ${esc(j.customerName)}</h2></div>
+    <div class="back-row"><button class="back-btn" onclick="${editingInvoiceId ? `openInvoiceView('${editingInvoiceId}')` : `openJobDetail('${jobId}')`}">←</button><h2>${editingInvoiceId ? 'Edit Invoice' : 'Quote'} — ${esc(j.customerName)}</h2></div>
 
     <div class="card">
-      <h2>🔧 Plumbing Labour</h2>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">$${PLUMBING_LABOUR_FIRST_HOUR} first hour, $${PLUMBING_LABOUR_ADDL_HOUR}/hr after — calculated automatically.</div>
-      ${labourLines.map(({li,i}) => `
-        <div class="line-item-row" style="grid-template-columns:1fr 70px 70px 26px;">
-          <input type="text" placeholder="Description" value="${esc(li.description)}" onchange="quoteLineItems[${i}].description=this.value">
-          <input type="number" placeholder="Hours" step="0.5" value="${li.hours||''}" onchange="quoteLineItems[${i}].hours=Number(this.value);openQuoteBuilderRefresh()">
-          <div style="font-size:13px;font-weight:600;color:var(--blue);text-align:right;">$${plumbingLabourCost(li.hours).toFixed(2)}</div>
+      <h2>🔧 Plumbing Labour — Lead Tech</h2>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">First hour ($${PLUMBING_LABOUR_FIRST_HOUR}) is automatic — just enter additional hours.</div>
+      ${leadLines.map(({li,i}) => `
+        <div class="line-item-row" style="grid-template-columns:1fr 90px 26px;">
+          <div style="font-size:13px;color:#555;">Technician</div>
+          <input type="number" placeholder="+ Hours" step="0.5" value="${li.additionalHours||''}" onchange="quoteLineItems[${i}].additionalHours=Number(this.value);openQuoteBuilderRefresh()">
           <button class="remove-line" onclick="quoteLineItems.splice(${i},1);openQuoteBuilderRefresh()">✕</button>
-        </div>`).join('')}
-      <button class="pill-btn" onclick="quoteLineItems.push({kind:'plumbing-labour',description:'',hours:1});openQuoteBuilderRefresh()">+ Add Plumbing Labour</button>
+        </div>
+        <div style="text-align:right;font-size:13px;font-weight:600;color:var(--blue);margin:-4px 0 8px;">$${leadLabourCost(li.additionalHours).toFixed(2)}</div>`).join('')}
+      <button class="pill-btn" onclick="quoteLineItems.push({kind:'labour-lead',additionalHours:0});openQuoteBuilderRefresh()">+ Add Technician</button>
+
+      <div class="subhead">Helpers</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Each helper has their own hours and hourly rate.</div>
+      ${helperLines.map(({li,i}) => `
+        <div class="line-item-row" style="grid-template-columns:1fr 70px 70px 26px;">
+          <div style="font-size:13px;color:#555;">Helper</div>
+          <input type="number" placeholder="Hours" step="0.5" value="${li.hours||''}" onchange="quoteLineItems[${i}].hours=Number(this.value);openQuoteBuilderRefresh()">
+          <input type="number" placeholder="$/hr" value="${li.rate||''}" onchange="quoteLineItems[${i}].rate=Number(this.value);openQuoteBuilderRefresh()">
+          <button class="remove-line" onclick="quoteLineItems.splice(${i},1);openQuoteBuilderRefresh()">✕</button>
+        </div>
+        <div style="text-align:right;font-size:13px;font-weight:600;color:var(--blue);margin:-4px 0 8px;">$${helperLabourCost(li.hours,li.rate).toFixed(2)}</div>`).join('')}
+      <button class="pill-btn" onclick="quoteLineItems.push({kind:'labour-helper',hours:0,rate:0});openQuoteBuilderRefresh()">+ Add Helper</button>
     </div>
 
     <div class="card">
@@ -1373,15 +1397,18 @@ function quoteBuilderHTML(jobId) {
       <div class="row"><span>HST (13%)</span><span>$${t.hst.toFixed(2)}</span></div>
       <div class="row big"><span>Total</span><span>$${t.total.toFixed(2)}</span></div>
     </div>
+    ${isInvoiceMode() ? '' : `
     <div class="card">
       <h2>Status</h2>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Drafts and Sent quotes just save. Marking a quote Accepted also saves a copy to your Google Drive "Quotes" folder.</div>
       <select id="quoteStatus">
         ${['Draft','Sent','Accepted','Declined'].map(s => `<option ${existing && existing.status===s?'selected':''}>${s}</option>`).join('')}
       </select>
-    </div>
-    <button class="pill-btn solid" style="width:100%;" onclick="saveQuote('${jobId}')">Save Quote</button>
+    </div>`}
+    <button class="pill-btn solid" style="width:100%;" onclick="saveQuote('${jobId}')">${isInvoiceMode() ? 'Save Invoice' : 'Save Quote'}</button>
   `;
 }
+function isInvoiceMode() { return !!(editingInvoiceId || creatingInvoiceFromQuoteId); }
 function openQuoteBuilderRefresh() {
   document.getElementById('tab-jobs').innerHTML = quoteBuilderHTML(activeJobId);
 }
@@ -1393,13 +1420,66 @@ function addMaterialFromReceipt(receiptId) {
   openQuoteBuilderRefresh();
   toast('Added from receipt ✓');
 }
+function validQuoteLines() {
+  return quoteLineItems.filter(li => {
+    if (li.kind === 'labour-lead') return Number(li.additionalHours) >= 0;
+    if (li.kind === 'labour-helper') return Number(li.hours) > 0;
+    return (li.description||'').trim();
+  });
+}
 function saveQuote(jobId) {
-  const validLines = quoteLineItems.filter(li => li.description.trim());
+  const validLines = validQuoteLines();
   if (!validLines.length && !quoteServiceFee) { toast('⚠️ Add at least one line item or a call fee'); return; }
   const j = jobs.find(x => x._id === jobId);
   validLines.forEach(li => { li.total = lineItemTotal(li); });
   const t = quoteTotals();
+  formOpen = false;
+
+  // Editing an existing invoice — just update it in place, no quote/status logic.
+  if (editingInvoiceId) {
+    const inv = invoices.find(x => x._id === editingInvoiceId);
+    const balance = Math.max(0, t.total - Number(inv.deposit||0));
+    db.collection('invoices').doc(editingInvoiceId).update({
+      lineItems: validLines, serviceCallFee: t.fee,
+      labourTotal: t.labourTotal, materialsTotal: t.materialsTotal, materialsCostTotal: t.materialsCostTotal,
+      otherTotal: t.otherTotal, subtotal: t.subtotal, hst: t.hst, total: t.total, balance,
+      status: balance <= 0 ? 'Paid' : (Number(inv.deposit||0) > 0 ? 'Partial' : 'Unpaid'),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => { toast('Invoice updated ✓'); openInvoiceView(editingInvoiceId); }).catch(e => toast('❌ ' + e.message));
+    return;
+  }
+
+  // Converting a quote into a brand-new invoice — create it now, with whatever edits were made.
+  if (creatingInvoiceFromQuoteId) {
+    const quoteId = creatingInvoiceFromQuoteId;
+    const q = quotes.find(x => x._id === quoteId);
+    const year = new Date().getFullYear();
+    const seq = invoices.filter(i => (i.invoiceNum||'').includes('DISP-' + year)).length + 1;
+    const invoiceNum = `DISP-${year}-${String(seq).padStart(3,'0')}`;
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 14);
+    const dueDateStr = dueDate.getFullYear() + '-' + String(dueDate.getMonth()+1).padStart(2,'0') + '-' + String(dueDate.getDate()).padStart(2,'0');
+    const payload = {
+      quoteId, jobId: q.jobId, customerId: q.customerId, customerName: q.customerName,
+      invoiceNum, date: todayStr(), dueDate: dueDateStr,
+      lineItems: validLines, serviceCallFee: t.fee,
+      labourTotal: t.labourTotal, materialsTotal: t.materialsTotal, materialsCostTotal: t.materialsCostTotal,
+      otherTotal: t.otherTotal, subtotal: t.subtotal, hst: t.hst, total: t.total, deposit: 0, balance: t.total,
+      status: 'Unpaid', paidDate: null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    db.collection('invoices').add(payload).then(ref => {
+      return Promise.all([
+        db.collection('quotes').doc(quoteId).update({ convertedToInvoice: true }),
+        db.collection('jobs').doc(q.jobId).update({ invoiceId: ref.id, updatedBy: currentUserName, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+      ]).then(() => ref.id);
+    }).then(invId => { toast('Invoice created ✓'); openInvoiceView(invId); }).catch(e => toast('❌ ' + e.message));
+    return;
+  }
+
+  // Normal quote save.
   const status = document.getElementById('quoteStatus').value;
+  const justAccepted = status === 'Accepted' && quotePrevStatus !== 'Accepted';
   const payload = {
     jobId, customerId: j.customerId, customerName: j.customerName,
     date: todayStr(), lineItems: validLines, serviceCallFee: t.fee,
@@ -1407,38 +1487,47 @@ function saveQuote(jobId) {
     otherTotal: t.otherTotal, subtotal: t.subtotal, hst: t.hst, total: t.total,
     status, convertedToInvoice: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-  formOpen = false;
   const ref = activeQuoteId ? db.collection('quotes').doc(activeQuoteId) : db.collection('quotes').doc();
   const isNew = !activeQuoteId;
   (isNew ? ref.set({ ...payload, createdAt: firebase.firestore.FieldValue.serverTimestamp() }) : ref.update(payload))
     .then(() => db.collection('jobs').doc(jobId).update({ quoteId: ref.id, updatedBy: currentUserName, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }))
-    .then(() => { toast('Quote saved ✓'); openJobDetail(jobId); })
+    .then(() => {
+      toast('Quote saved ✓');
+      if (justAccepted) exportQuoteToDrive(ref.id, { ...payload, lineItems: validLines });
+      openJobDetail(jobId);
+    })
     .catch(e => toast('❌ ' + e.message));
 }
 function convertToInvoice(quoteId) {
   const q = quotes.find(x => x._id === quoteId);
   if (!q) return;
-  const year = new Date().getFullYear();
-  const seq = invoices.filter(i => (i.invoiceNum||'').includes('DISP-' + year)).length + 1;
-  const invoiceNum = `DISP-${year}-${String(seq).padStart(3,'0')}`;
-  const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + 14);
-  const dueDateStr = dueDate.getFullYear() + '-' + String(dueDate.getMonth()+1).padStart(2,'0') + '-' + String(dueDate.getDate()).padStart(2,'0');
-  const payload = {
-    quoteId, jobId: q.jobId, customerId: q.customerId, customerName: q.customerName,
-    invoiceNum, date: todayStr(), dueDate: dueDateStr,
-    lineItems: q.lineItems, serviceCallFee: q.serviceCallFee||0,
-    labourTotal: q.labourTotal, materialsTotal: q.materialsTotal, materialsCostTotal: q.materialsCostTotal||0,
-    otherTotal: q.otherTotal||0, subtotal: q.subtotal, hst: q.hst, total: q.total, deposit: 0, balance: q.total,
-    status: 'Unpaid', paidDate: null,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
-  db.collection('invoices').add(payload).then(ref => {
-    return Promise.all([
-      db.collection('quotes').doc(quoteId).update({ convertedToInvoice: true }),
-      db.collection('jobs').doc(q.jobId).update({ invoiceId: ref.id, updatedBy: currentUserName, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
-    ]).then(() => ref.id);
-  }).then(invId => { toast('Invoice created ✓'); openInvoiceView(invId); }).catch(e => toast('❌ ' + e.message));
+  formOpen = true;
+  jobsView = 'quote';
+  activeJobId = q.jobId;
+  activeQuoteId = null;
+  editingInvoiceId = null;
+  creatingInvoiceFromQuoteId = quoteId;
+  showReceiptSearch = false;
+  quoteLineItems = JSON.parse(JSON.stringify(q.lineItems||[]));
+  quoteServiceFee = Number(q.serviceCallFee||0);
+  renderJobsTab();
+  switchTabUI('jobs');
+  toast('Review and edit before saving the invoice');
+}
+function openInvoiceEditor(invoiceId) {
+  const inv = invoices.find(x => x._id === invoiceId);
+  if (!inv) return;
+  formOpen = true;
+  jobsView = 'quote';
+  activeJobId = inv.jobId;
+  activeQuoteId = null;
+  creatingInvoiceFromQuoteId = null;
+  editingInvoiceId = invoiceId;
+  showReceiptSearch = false;
+  quoteLineItems = JSON.parse(JSON.stringify(inv.lineItems||[]));
+  quoteServiceFee = Number(inv.serviceCallFee||0);
+  renderJobsTab();
+  switchTabUI('jobs');
 }
 
 // ── INVOICE VIEW ──
@@ -1451,9 +1540,13 @@ function openInvoiceView(id) {
 }
 // Customer-facing display for a line item — NEVER exposes raw material cost, only the billed price.
 function lineItemDisplay(li) {
-  if (li.kind === 'plumbing-labour') {
+  if (li.kind === 'labour-lead') {
+    const hours = 1 + Math.max(0, Number(li.additionalHours)||0);
+    return { label: 'Plumbing Labour (Technician)', qtyLabel: `${hours} hr${hours===1?'':'s'}`, total: leadLabourCost(li.additionalHours) };
+  }
+  if (li.kind === 'labour-helper') {
     const hours = Number(li.hours)||0;
-    return { label: li.description || 'Plumbing Labour', qtyLabel: `${hours} hr${hours===1?'':'s'}`, total: plumbingLabourCost(hours) };
+    return { label: 'Plumbing Labour (Helper)', qtyLabel: `${hours} hr${hours===1?'':'s'} @ $${Number(li.rate||0).toFixed(2)}/hr`, total: helperLabourCost(li.hours, li.rate) };
   }
   if (li.kind === 'material') {
     const billedUnit = (Number(li.unitCost)||0) * (1 + MATERIAL_MARKUP);
@@ -1487,7 +1580,9 @@ function invoiceViewHTML(id) {
       <div class="form-group"><label class="field-label">Deposit Received</label><input id="invDeposit" type="number" value="${inv.deposit||0}"></div>
       <button class="pill-btn" onclick="updateDeposit('${id}')">Update Deposit</button>
       ${inv.status !== 'Paid' ? `<button class="pill-btn solid" onclick="markInvoicePaid('${id}')">Mark as Paid</button>` : ''}
+      <button class="pill-btn" onclick="openInvoiceEditor('${id}')">Edit Invoice</button>
       <button class="pill-btn" onclick="printInvoice('${id}')">Print / Export</button>
+      <button class="pill-btn" onclick="emailDocument('invoice','${id}')">📧 Email Invoice</button>
     </div>
   `;
 }
@@ -1502,25 +1597,76 @@ function markInvoicePaid(id) {
   db.collection('invoices').doc(id).update({ status: 'Paid', balance: 0, paidDate: todayStr(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
     .then(() => toast('Marked paid ✓'));
 }
-function printInvoice(id) {
-  const inv = invoices.find(x => x._id === id);
-  const w = window.open('', '_blank');
-  w.document.write(`
-    <html><head><title>${esc(inv.invoiceNum)}</title>
+// Shared customer-facing HTML body for an invoice or quote — never includes raw material cost.
+function buildDocumentHTML(doc, kind) {
+  const isInvoice = kind === 'invoice';
+  const title = isInvoice ? `Invoice ${esc(doc.invoiceNum)}` : `Quote — ${fmtDate(doc.date)}`;
+  const rows = (doc.lineItems||[]).map(li => { const d = lineItemDisplay(li); return `<tr><td>${esc(d.label)}</td><td>${esc(d.qtyLabel)}</td><td>$${d.total.toFixed(2)}</td></tr>`; }).join('');
+  const feeRow = Number(doc.serviceCallFee||0) > 0 ? `<tr><td>Drain Cleaning Call Fee</td><td>—</td><td>$${Number(doc.serviceCallFee).toFixed(2)}</td></tr>` : '';
+  return `
+    <html><head><title>${esc(title)}</title>
     <style>body{font-family:Arial,sans-serif;padding:40px;color:#1a1a1a;} h1{color:#1A5276;} table{width:100%;border-collapse:collapse;margin:20px 0;} td,th{padding:8px;border-bottom:1px solid #ddd;text-align:left;} .total-row{font-weight:bold;font-size:18px;}</style>
     </head><body>
     <h1>Leo's Plumbing and Irrigation</h1>
-    <h2>Invoice ${esc(inv.invoiceNum)}</h2>
-    <p>Bill to: ${esc(inv.customerName)}<br>Date: ${fmtDate(inv.date)} · Due: ${fmtDate(inv.dueDate)}</p>
+    <h2>${esc(title)}</h2>
+    <p>${isInvoice ? 'Bill to' : 'Prepared for'}: ${esc(doc.customerName)}<br>Date: ${fmtDate(doc.date)}${isInvoice ? ' · Due: ' + fmtDate(doc.dueDate) : ''}</p>
     <table><tr><th>Description</th><th>Qty</th><th>Total</th></tr>
-    ${(inv.lineItems||[]).map(li => { const d = lineItemDisplay(li); return `<tr><td>${esc(d.label)}</td><td>${esc(d.qtyLabel)}</td><td>$${d.total.toFixed(2)}</td></tr>`; }).join('')}
-    ${Number(inv.serviceCallFee||0) > 0 ? `<tr><td>Drain Cleaning Call Fee</td><td>—</td><td>$${Number(inv.serviceCallFee).toFixed(2)}</td></tr>` : ''}
+    ${rows}${feeRow}
     </table>
-    <p>Subtotal: $${Number(inv.subtotal||0).toFixed(2)}<br>HST (13%): $${Number(inv.hst||0).toFixed(2)}<br>Deposit: $${Number(inv.deposit||0).toFixed(2)}</p>
-    <p class="total-row">Balance Owing: $${Number(inv.balance||0).toFixed(2)}</p>
+    <p>Subtotal: $${Number(doc.subtotal||0).toFixed(2)}<br>HST (13%): $${Number(doc.hst||0).toFixed(2)}${isInvoice ? '<br>Deposit: $' + Number(doc.deposit||0).toFixed(2) : ''}</p>
+    <p class="total-row">${isInvoice ? 'Balance Owing' : 'Total'}: $${Number(isInvoice ? doc.balance : doc.total||0).toFixed(2)}</p>
     </body></html>
-  `);
+  `;
+}
+function printInvoice(id) {
+  const inv = invoices.find(x => x._id === id);
+  const w = window.open('', '_blank');
+  w.document.write(buildDocumentHTML(inv, 'invoice'));
   w.document.close();
+}
+
+// ── GOOGLE DRIVE EXPORT (Accepted quotes only) ──
+function exportQuoteToDrive(quoteId, quoteData) {
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // avoids a CORS preflight against Apps Script
+    body: JSON.stringify({
+      action: 'exportQuote',
+      customerName: quoteData.customerName,
+      date: quoteData.date,
+      lines: (quoteData.lineItems||[]).map(li => { const d = lineItemDisplay(li); return { label: d.label, qtyLabel: d.qtyLabel, total: d.total.toFixed(2) }; }),
+      serviceCallFee: Number(quoteData.serviceCallFee||0).toFixed(2),
+      subtotal: Number(quoteData.subtotal||0).toFixed(2),
+      hst: Number(quoteData.hst||0).toFixed(2),
+      total: Number(quoteData.total||0).toFixed(2)
+    })
+  }).then(res => res.json()).then(data => {
+    if (data.ok) {
+      db.collection('quotes').doc(quoteId).update({ driveDocUrl: data.url }).catch(() => {});
+      toast('Saved to Drive "Quotes" folder ✓');
+    } else {
+      toast('⚠️ Quote saved, but Drive export failed: ' + (data.error||'unknown error'));
+    }
+  }).catch(e => toast('⚠️ Quote saved, but Drive export failed: ' + e.message));
+}
+
+// ── EMAIL ──
+function emailDocument(kind, id) {
+  const doc = kind === 'invoice' ? invoices.find(x => x._id === id) : quotes.find(x => x._id === id);
+  if (!doc) return;
+  const customer = customers.find(x => x._id === doc.customerId);
+  if (!customer || !customer.email) { toast('⚠️ This customer has no email on file — add one in their profile'); return; }
+  const subject = kind === 'invoice' ? `Invoice ${doc.invoiceNum} — Leo's Plumbing and Irrigation` : `Quote from Leo's Plumbing and Irrigation`;
+  const htmlBody = buildDocumentHTML(doc, kind);
+  toast('Sending email...');
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'sendEmail', to: customer.email, subject, htmlBody, fromAlias: 'leosplumbingandirrigation@gmail.com' })
+  }).then(res => res.json()).then(data => {
+    if (data.ok) toast(`Emailed to ${customer.email} ✓`);
+    else toast('❌ Email failed: ' + (data.error||'unknown error'));
+  }).catch(e => toast('❌ Email failed: ' + e.message));
 }
 
 // ── MILEAGE TAB ──
