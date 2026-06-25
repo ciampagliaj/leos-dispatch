@@ -445,7 +445,6 @@ function switchUser() {
 
 function enterApp() {
   document.getElementById('appScreen').classList.remove('hidden');
-  document.getElementById('settingsUserName').textContent = currentUserName;
   attachListeners();
   switchTab('dispatch');
 }
@@ -473,7 +472,10 @@ function refreshCurrentTab() {
 }
 
 // ── FIRESTORE LISTENERS ──
+let listenersAttached = false;
 function attachListeners() {
+  if (listenersAttached) return;
+  listenersAttached = true;
   db.collection('customers').onSnapshot(snap => {
     customers = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
     refreshCurrentTab();
