@@ -330,6 +330,114 @@ let activeInvoiceId = null;
 let invoiceLineItems = [];
 
 let mileageSubTab = 'trip'; // trip | truck
+let dispatchView = 'home'; // home | route
+let routeStops = []; // ordered [{ label, address }] for the multi-stop day route planner
+
+// ── GEOLOCATION + GOOGLE MAPS (no API key — opens the Maps app/site directly) ──
+function useMyLocationFor(inputId) {
+  if (!navigator.geolocation) { toast('⚠️ Geolocation not supported on this device'); return; }
+  toast('Getting your location...');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const el = document.getElementById(inputId);
+      if (el) el.value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+      toast('Location set ✓');
+    },
+    err => toast('⚠️ Could not get location: ' + err.message),
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+function openMapsRoute(origin, destination, waypoints) {
+  const params = new URLSearchParams({ api: '1', origin, destination, travelmode: 'driving' });
+  if (waypoints && waypoints.length) params.set('waypoints', waypoints.join('|'));
+  window.open(`https://www.google.com/maps/dir/?${params.toString()}`, '_blank');
+}
+function viewTripRoute() {
+  const from = document.getElementById('tripFrom').value.trim();
+  const to = document.getElementById('tripTo').value.trim();
+  if (!from || !to) { toast('⚠️ Enter both From and To addresses'); return; }
+  openMapsRoute(from, to, []);
+}
+
+// ── PLAN MY DAY (multi-stop route planner) ──
+function openRoutePlanner() {
+  dispatchView = 'route';
+  const today = todayStr();
+  const myJobsToday = jobs
+    .filter(j => j.scheduledDate === today && (j.assignedTo === currentUserName || j.assignedTo === 'Both') && j.customerAddress)
+    .sort((a,b) => (a.scheduledTime||'').localeCompare(b.scheduledTime||''));
+  routeStops = myJobsToday.map(j => ({ label: j.customerName, address: j.customerAddress }));
+  if (routeStops.length === 0) routeStops = [{ label: '', address: '' }, { label: '', address: '' }];
+  renderDispatchTab();
+}
+function backToDispatchHome() {
+  dispatchView = 'home';
+  renderDispatchTab();
+}
+function routePlannerRefresh() {
+  document.getElementById('tab-dispatch').innerHTML = routePlannerHTML();
+}
+function addRouteStop() {
+  routeStops.push({ label: '', address: '' });
+  routePlannerRefresh();
+}
+function removeRouteStop(i) {
+  routeStops.splice(i, 1);
+  routePlannerRefresh();
+}
+function moveRouteStop(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= routeStops.length) return;
+  [routeStops[i], routeStops[j]] = [routeStops[j], routeStops[i]];
+  routePlannerRefresh();
+}
+function setRouteStopMyLocation(i) {
+  if (!navigator.geolocation) { toast('⚠️ Geolocation not supported on this device'); return; }
+  toast('Getting your location...');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      routeStops[i].label = 'My Location';
+      routeStops[i].address = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+      routePlannerRefresh();
+      toast('Location set ✓');
+    },
+    err => toast('⚠️ Could not get location: ' + err.message),
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+function openDayRoute() {
+  const addrs = routeStops.map(s => s.address.trim()).filter(Boolean);
+  if (addrs.length < 2) { toast('⚠️ Add at least two stops'); return; }
+  const origin = addrs[0];
+  const destination = addrs[addrs.length - 1];
+  const waypoints = addrs.slice(1, -1);
+  openMapsRoute(origin, destination, waypoints);
+}
+function routePlannerHTML() {
+  return `
+    <div class="back-row"><button class="back-btn" onclick="backToDispatchHome()">←</button><h2>Plan My Day</h2></div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Pre-filled from today's jobs in scheduled order. Reorder, add, or remove stops, then open the full route in Google Maps.</div>
+      ${routeStops.map((s,i) => `
+        <div class="list-item" style="margin-bottom:8px;">
+          <div style="display:flex;gap:6px;align-items:flex-start;">
+            <div style="flex:1;">
+              ${s.label ? `<div class="list-item-sub" style="margin-bottom:3px;">${esc(s.label)}</div>` : ''}
+              <input type="text" placeholder="Address or coordinates" value="${esc(s.address)}" onchange="routeStops[${i}].address=this.value">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;">
+              <button class="icon-btn" style="background:#eee;color:var(--blue);width:28px;height:28px;" onclick="moveRouteStop(${i},-1)">↑</button>
+              <button class="icon-btn" style="background:#eee;color:var(--blue);width:28px;height:28px;" onclick="moveRouteStop(${i},1)">↓</button>
+            </div>
+            <button class="remove-line" onclick="removeRouteStop(${i})">✕</button>
+          </div>
+          <div style="font-size:12px;color:var(--blue);cursor:pointer;margin-top:6px;" onclick="setRouteStopMyLocation(${i})">📍 Use My Location for this stop</div>
+        </div>`).join('')}
+      <button class="pill-btn" style="width:100%;" onclick="addRouteStop()">+ Add Stop</button>
+    </div>
+    <button class="pill-btn solid" style="width:100%;" onclick="openDayRoute()">🗺️ Open Full Route in Google Maps</button>
+  `;
+}
 
 let notifPrefs = JSON.parse(localStorage.getItem('leosDispatchNotifPrefs') || '{"jobAdded":true,"statusChange":true,"overdueInvoice":true,"lowStock":true}');
 
@@ -643,6 +751,7 @@ async function uploadCustomerPhoto(customerId, file) {
 
 // ── DISPATCH TAB ──
 function renderDispatchTab() {
+  if (dispatchView === 'route') { document.getElementById('tab-dispatch').innerHTML = routePlannerHTML(); return; }
   const isJake = currentUserName === 'Jake';
   const otherUser = isJake ? 'Doug' : 'Jake';
   const today = todayStr();
@@ -668,6 +777,7 @@ function renderDispatchTab() {
         <button onclick="openAddJob()">+ New Job</button>
         <button onclick="switchTab('mileage')">+ Log Mileage</button>
         <button onclick="openAddCustomer()">+ Add Customer</button>
+        <button onclick="openRoutePlanner()">🗺️ Plan My Day</button>
       </div>
     </div>
 
@@ -1690,8 +1800,13 @@ function tripLogHTML() {
     <div class="card">
       <h2>Log a Trip</h2>
       <div class="form-group"><label class="field-label">Date</label><input id="tripDate" type="date" value="${todayStr()}"></div>
-      <div class="form-group"><label class="field-label">From</label><input id="tripFrom" type="text" placeholder="Starting address"></div>
+      <div class="form-group">
+        <label class="field-label">From</label>
+        <input id="tripFrom" type="text" placeholder="Starting address">
+        <div style="font-size:12px;color:var(--blue);cursor:pointer;margin-top:5px;" onclick="useMyLocationFor('tripFrom')">📍 Use My Location</div>
+      </div>
       <div class="form-group"><label class="field-label">To</label><input id="tripTo" type="text" placeholder="Destination address"></div>
+      <div style="font-size:12px;color:var(--blue);cursor:pointer;margin-bottom:13px;" onclick="viewTripRoute()">🗺️ View Route in Google Maps</div>
       <div class="row2">
         <div class="form-group"><label class="field-label">KM</label><input id="tripKm" type="number" placeholder="e.g. 14.2"></div>
         <div class="form-group"><label class="field-label">Link to Job (optional)</label>
