@@ -178,6 +178,11 @@
   /* SECTION SUBHEADS — used to break up long forms into scannable groups */
   .subhead { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 700; margin: 16px 0 8px; }
   .subhead:first-child { margin-top: 0; }
+
+  /* SWIPE-TO-DELETE */
+  .swipeable { position: relative; overflow: hidden; }
+  .swipe-del-btn { position: absolute; right: 0; top: 0; bottom: 0; width: 70px; background: var(--danger); color: white; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; transform: translateX(100%); transition: transform 0.2s; cursor: pointer; border: none; }
+  .swipe-del-btn.visible { transform: translateX(0); }
 </style>
 </head>
 <body>
@@ -292,9 +297,20 @@ const CLOUDINARY_PRESET = "Leo's Receipts";
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQOI1EB5aLTm11bBypcODg-UYtblUH5nc0cTf8PZuJ3VN8u-vGff8BYXu_S7CQAkX9/exec';
 const SPREADSHEET_ID = '1s91mWhcAv-JnkmucXNKpVdhjEmICCpn_-EHkm9LKNB4';
 const HST_RATE = 0.13;
-const PLUMBING_LABOUR_FIRST_HOUR = 160;
-const PLUMBING_LABOUR_ADDL_HOUR = 125;
 const MATERIAL_MARKUP = 0.10;
+// Per-user default labour rates — editable in Settings and saved to Firestore settings/{userName}
+const DEFAULT_RATES = {
+  Jake: { firstHour: 160, addlHour: 130 },
+  Doug: { firstHour: 125, addlHour: 50 }
+};
+const CUSTOMER_TAGS = ['Residential','Commercial','Landlord / Property Manager','New Build','Priority Client','Do Not Return','Kitec Pipe ⚠️','Referred','Seasonal'];
+const MESSAGE_TEMPLATES = [
+  { id: 'on_my_way',            label: '🚗 On My Way',             text: "Hi {customerName}, this is {techName} from Leo's Plumbing and Irrigation. I'm on my way and should arrive in about {eta} minutes!" },
+  { id: 'job_complete',         label: '✅ Job Complete',           text: "Hi {customerName}, all finished up today! Thank you for choosing Leo's Plumbing and Irrigation. Don't hesitate to reach out if you have any questions." },
+  { id: 'call_us',              label: '📞 Please Call Us',         text: "Hi {customerName}, this is Leo's Plumbing and Irrigation. Please give us a call at your earliest convenience. Thank you!" },
+  { id: 'quote_sent',           label: '📋 Quote Ready',            text: "Hi {customerName}, your quote from Leo's Plumbing and Irrigation is ready for your review. Please let us know when you're ready to get started!" },
+  { id: 'appointment_reminder', label: '📅 Appointment Reminder',   text: "Hi {customerName}, just a reminder that you have an appointment with Leo's Plumbing and Irrigation tomorrow. Please contact us if you need to reschedule." }
+];
 
 const STATUS_FLOW = ['Quoted', 'Scheduled', 'In Progress', 'Complete', 'Follow-up Needed'];
 
@@ -315,6 +331,9 @@ let priceList = [];
 let incomeReceipts = []; // from receipts collection, type==='income', read-only cross-reference
 let expenseReceipts = []; // from receipts collection, type==='expense', read-only — used to pull material costs into quotes
 let receiptSearchQuery = '';
+
+let currentRates = { firstHour: 160, addlHour: 130 }; // overwritten on login from Firestore settings
+let customerTagFilter = ''; // active tag filter chip in customer list
 
 let customersView = 'list'; // list | add | detail
 let activeCustomerId = null;
@@ -550,6 +569,7 @@ function signIn() {
 function showWhoOrApp() {
   currentUserName = localStorage.getItem('leosDispatchUser');
   if (currentUserName === 'Jake' || currentUserName === 'Doug') {
+    loadUserRates(currentUserName);
     enterApp();
   } else {
     document.getElementById('whoScreen').classList.remove('hidden');
@@ -567,7 +587,20 @@ function chooseUser(name) {
     email,
     lastLogin: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true }).catch(() => {});
+  loadUserRates(name);
   enterApp();
+}
+
+function loadUserRates(userName) {
+  const defaults = DEFAULT_RATES[userName] || DEFAULT_RATES.Jake;
+  currentRates = { ...defaults };
+  db.collection('settings').doc(userName).get().then(doc => {
+    if (doc.exists) {
+      const d = doc.data();
+      if (d.firstHourRate) currentRates.firstHour = Number(d.firstHourRate);
+      if (d.addlHourRate)  currentRates.addlHour  = Number(d.addlHourRate);
+    }
+  }).catch(() => {});
 }
 
 function switchUser() {
@@ -819,13 +852,14 @@ function renderDispatchTab() {
   `;
 }
 function jobListItemHTML(j) {
-  return `<div class="list-item" onclick="openJobDetail('${j._id}')">
+  return `<div class="list-item swipeable" onclick="openJobDetail('${j._id}')">
     <div class="list-item-top">
       <span class="list-item-title">${esc(j.customerName||'Unknown')}</span>
       <span class="status-badge ${statusClass(j.status)}">${j.status}</span>
     </div>
     <div class="list-item-sub">${esc(j.customerAddress||'')}${j.scheduledTime ? ' · ' + j.scheduledTime : ''}</div>
     ${tradeBadge(j.trade)} <span style="font-size:11px;color:var(--text-muted);margin-left:6px;">${j.assignedTo}</span>
+    <button class="swipe-del-btn" onclick="event.stopPropagation();deleteJob('${j._id}')">Delete</button>
   </div>`;
 }
 
@@ -839,17 +873,27 @@ function renderCustomersTab() {
 function customersListHTML() {
   const q = (jobSearchCust || '').toLowerCase();
   const list = customers
-    .filter(c => !q || (c.name||'').toLowerCase().includes(q) || (c.address||'').toLowerCase().includes(q))
+    .filter(c => {
+      if (q && !(c.name||'').toLowerCase().includes(q) && !(c.address||'').toLowerCase().includes(q)) return false;
+      if (customerTagFilter && !(c.tags||[]).includes(customerTagFilter)) return false;
+      return true;
+    })
     .sort((a,b) => (a.name||'').localeCompare(b.name||''));
   return `
     <div class="search-bar"><input type="text" placeholder="Search customers..." value="${esc(jobSearchCust||'')}" oninput="jobSearchCust=this.value;renderCustomersTab()"></div>
+    <div class="filter-tabs">
+      <div class="filter-chip ${customerTagFilter===''?'active':''}" onclick="customerTagFilter='';renderCustomersTab()">All</div>
+      ${CUSTOMER_TAGS.map(t => `<div class="filter-chip ${customerTagFilter===t?'active':''}" onclick="customerTagFilter=${JSON.stringify(t)};renderCustomersTab()">${esc(t)}</div>`).join('')}
+    </div>
     <button class="pill-btn solid" style="width:100%;margin-bottom:12px;" onclick="openAddCustomer()">+ New Customer</button>
-    ${list.length === 0 ? `<div class="card placeholder">No customers yet.</div>` : list.map(c => {
+    ${list.length === 0 ? `<div class="card placeholder">No customers match.</div>` : list.map(c => {
       const lastJob = jobs.filter(j => j.customerId === c._id).sort((a,b) => (b.scheduledDate||'').localeCompare(a.scheduledDate||''))[0];
-      return `<div class="list-item" onclick="openCustomerDetail('${c._id}')">
+      return `<div class="list-item swipeable" onclick="openCustomerDetail('${c._id}')">
         <div class="list-item-title">${esc(c.name)}</div>
         <div class="list-item-sub">${esc(c.address||'')}</div>
+        ${(c.tags||[]).length ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">${(c.tags||[]).map(t=>`<span style="background:var(--blue-light);color:var(--blue);border-radius:20px;padding:1px 7px;font-size:10px;font-weight:600;">${esc(t)}</span>`).join('')}</div>` : ''}
         <div class="list-item-sub">${lastJob ? 'Last job: ' + fmtDate(lastJob.scheduledDate) : 'No jobs yet'}</div>
+        <button class="swipe-del-btn" onclick="event.stopPropagation();deleteCustomer('${c._id}')">Delete</button>
       </div>`;
     }).join('')}
   `;
@@ -898,6 +942,12 @@ function customerFormHTML(c) {
         <div class="form-group"><label class="field-label">Email</label><input id="custEmail" type="text" value="${esc(c.email||'')}"></div>
       </div>
       <div class="form-group"><label class="field-label">Notes</label><textarea id="custNotes" rows="2" style="width:100%;padding:10px;border:1.5px solid #d0d7de;border-radius:9px;">${esc(c.notes||'')}</textarea></div>
+      <div class="form-group">
+        <label class="field-label">Tags</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+          ${CUSTOMER_TAGS.map(tag => `<label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="${esc(tag)}" id="custTag_${esc(tag.replace(/[^a-zA-Z]/g,''))}" ${(c.tags||[]).includes(tag)?'checked':''}> ${esc(tag)}</label>`).join('')}
+        </div>
+      </div>
     </div>
     <div class="card">
       <h2>Property Profile</h2>
@@ -936,12 +986,17 @@ function customerFormHTML(c) {
 function saveCustomer(id) {
   const name = document.getElementById('custName').value.trim();
   if (!name) { toast('⚠️ Enter a customer name'); return; }
+  const tags = CUSTOMER_TAGS.filter(tag => {
+    const el = document.getElementById('custTag_' + tag.replace(/[^a-zA-Z]/g,''));
+    return el && el.checked;
+  });
   const payload = {
     name,
     address: document.getElementById('custAddress').value.trim(),
     phone: document.getElementById('custPhone').value.trim(),
     email: document.getElementById('custEmail').value.trim(),
     notes: document.getElementById('custNotes').value.trim(),
+    tags,
     property: {
       waterLineType: document.getElementById('custWaterLine').value,
       pipeType: document.getElementById('custPipeType').value,
@@ -980,10 +1035,17 @@ function customerDetailHTML(id) {
     <div class="card">
       <h2>Contact</h2>
       <div class="list-item-sub">${esc(c.address||'')}</div>
-      <div class="list-item-sub">${esc(c.phone||'')} ${c.email ? '· ' + esc(c.email) : ''}</div>
+      <div class="list-item-sub">${c.phone ? `<a href="tel:${esc(c.phone)}" style="color:var(--blue);">${esc(c.phone)}</a>` : ''} ${c.email ? '· ' + esc(c.email) : ''}</div>
       ${c.notes ? `<div class="list-item-sub" style="margin-top:6px;">${esc(c.notes)}</div>` : ''}
+      ${(c.tags||[]).length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;">${(c.tags||[]).map(t => `<span style="background:var(--blue-light);color:var(--blue);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;">${esc(t)}</span>`).join('')}</div>` : ''}
       <button class="pill-btn" onclick="openEditCustomer('${id}')" style="margin-top:10px;">Edit</button>
     </div>
+    ${c.phone ? `<div class="card">
+      <h2>Send a Message</h2>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${MESSAGE_TEMPLATES.map(t => `<button class="pill-btn" onclick="sendTemplate('${t.id}','${id}')">${t.label}</button>`).join('')}
+      </div>
+    </div>` : ''}
     <div class="card">
       <h2>Property Profile</h2>
       <div class="list-item-sub">Water line: ${esc(p.waterLineType||'—')} · Pipe: ${esc(p.pipeType||'—')}</div>
@@ -1123,6 +1185,14 @@ function jobFormHTML(j) {
         <div class="form-group"><label class="field-label">Scheduled Time</label><input id="jobTime" type="time"></div>
       </div>
       <div class="form-group"><label class="field-label">Notes</label><textarea id="jobNotes" rows="2" style="width:100%;padding:10px;border:1.5px solid #d0d7de;border-radius:9px;"></textarea></div>
+      <div class="toggle-row">
+        <span style="font-size:14px;">Recurring Job</span>
+        <label class="switch"><input type="checkbox" id="jobRecurring" onchange="document.getElementById('jobRecurFreq').style.display=this.checked?'block':'none'"><span class="slider"></span></label>
+      </div>
+      <div id="jobRecurFreq" style="display:none;margin-top:8px;">
+        <div class="form-group"><label class="field-label">Frequency</label>
+          <select id="jobFrequency"><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="annual">Annual</option></select></div>
+      </div>
     </div>
     ${jobNewCustomerMode ? `
     <div class="card">
@@ -1177,6 +1247,8 @@ function saveJob() {
   if (!date) { toast('⚠️ Select a scheduled date'); return; }
 
   const proceed = (cid) => {
+    const isRecurring = document.getElementById('jobRecurring') && document.getElementById('jobRecurring').checked;
+    const recurringFrequency = isRecurring && document.getElementById('jobFrequency') ? document.getElementById('jobFrequency').value : null;
     const payload = {
       customerId: cid || null,
       customerName, customerAddress,
@@ -1187,6 +1259,7 @@ function saveJob() {
       scheduledTime: document.getElementById('jobTime').value,
       purpose: document.getElementById('jobPurpose').value.trim(),
       notes: document.getElementById('jobNotes').value.trim(),
+      isRecurring: !!isRecurring, recurringFrequency: recurringFrequency || null,
       jobPhotos: [], partsUsed: [], quoteId: null, invoiceId: null, completedAt: null,
       updatedBy: currentUserName,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1229,9 +1302,23 @@ function jobDetailHTML(id) {
       </div>
       <div class="list-item-sub"><strong>Purpose:</strong> ${esc(j.purpose||'—')}</div>
       <div class="list-item-sub"><strong>Scheduled:</strong> ${fmtDate(j.scheduledDate)} ${esc(j.scheduledTime||'')}</div>
+      ${j.isRecurring ? `<div class="list-item-sub" style="color:var(--blue);margin-top:4px;">🔁 Recurring — ${esc(j.recurringFrequency||'')}</div>` : ''}
       ${j.notes ? `<div class="list-item-sub" style="margin-top:6px;"><strong>Notes:</strong> ${esc(j.notes)}</div>` : ''}
-      <button class="pill-btn" onclick="openEditJob('${id}')" style="margin-top:10px;">Edit</button>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">
+        <button class="pill-btn" onclick="openEditJob('${id}')">Edit</button>
+        <button class="pill-btn" onclick="duplicateJob('${id}')">Duplicate</button>
+        ${j.status === 'Complete' ? `<button class="pill-btn" onclick="generateJobSummary('${id}')">Generate Summary</button>` : ''}
+      </div>
     </div>
+    ${(() => {
+      const c = customers.find(x => x._id === j.customerId);
+      return c && c.phone ? `<div class="card">
+        <h2>Send a Message</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${MESSAGE_TEMPLATES.map(t => `<button class="pill-btn" onclick="sendTemplate('${t.id}','${j.customerId}')">${t.label}</button>`).join('')}
+        </div>
+      </div>` : '';
+    })()}
 
     <div class="card">
       <h2>Parts Used</h2>
@@ -1276,10 +1363,34 @@ function jobDetailHTML(id) {
   `;
 }
 function setJobStatus(id, status) {
+  const j = jobs.find(x => x._id === id);
   db.collection('jobs').doc(id).update({
     status, updatedBy: currentUserName, updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     completedAt: status === 'Complete' ? todayStr() : null
-  }).then(() => toast('Status: ' + status)).catch(e => toast('❌ ' + e.message));
+  }).then(() => {
+    toast('Status: ' + status);
+    if (status === 'Complete' && j && j.isRecurring && j.recurringFrequency) {
+      createNextRecurrence(j);
+    }
+  }).catch(e => toast('❌ ' + e.message));
+}
+function createNextRecurrence(j) {
+  const base = new Date(j.scheduledDate + 'T00:00:00');
+  if (j.recurringFrequency === 'weekly')  base.setDate(base.getDate() + 7);
+  if (j.recurringFrequency === 'monthly') base.setMonth(base.getMonth() + 1);
+  if (j.recurringFrequency === 'annual')  base.setFullYear(base.getFullYear() + 1);
+  const nextDate = base.getFullYear() + '-' + String(base.getMonth()+1).padStart(2,'0') + '-' + String(base.getDate()).padStart(2,'0');
+  db.collection('jobs').add({
+    customerId: j.customerId, customerName: j.customerName, customerAddress: j.customerAddress,
+    trade: j.trade, assignedTo: j.assignedTo, priority: j.priority || 'normal',
+    status: 'Scheduled', scheduledDate: nextDate, scheduledTime: j.scheduledTime || '',
+    purpose: j.purpose, notes: j.notes || '',
+    isRecurring: true, recurringFrequency: j.recurringFrequency,
+    jobPhotos: [], partsUsed: [], quoteId: null, invoiceId: null, completedAt: null,
+    updatedBy: currentUserName, createdBy: currentUserName,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => toast(`🔁 Next ${j.recurringFrequency} occurrence created: ${fmtDate(nextDate)}`)).catch(() => {});
 }
 function addPart(jobId) {
   const name = document.getElementById('partName').value.trim();
@@ -1331,6 +1442,14 @@ function jobEditFormHTML(j) {
         <div class="form-group"><label class="field-label">Scheduled Time</label><input id="jobTime" type="time" value="${esc(j.scheduledTime||'')}"></div>
       </div>
       <div class="form-group"><label class="field-label">Notes</label><textarea id="jobNotes" rows="2" style="width:100%;padding:10px;border:1.5px solid #d0d7de;border-radius:9px;">${esc(j.notes||'')}</textarea></div>
+      <div class="toggle-row">
+        <span style="font-size:14px;">Recurring Job</span>
+        <label class="switch"><input type="checkbox" id="jobRecurring" ${j.isRecurring?'checked':''} onchange="document.getElementById('jobRecurFreq').style.display=this.checked?'block':'none'"><span class="slider"></span></label>
+      </div>
+      <div id="jobRecurFreq" style="display:${j.isRecurring?'block':'none'};margin-top:8px;">
+        <div class="form-group"><label class="field-label">Frequency</label>
+          <select id="jobFrequency">${['weekly','monthly','annual'].map(f=>`<option value="${f}" ${j.recurringFrequency===f?'selected':''}>${f[0].toUpperCase()+f.slice(1)}</option>`).join('')}</select></div>
+      </div>
     </div>
     <button class="pill-btn solid" style="width:100%;" onclick="updateJob('${j._id}')">Save Changes</button>
   `;
@@ -1338,6 +1457,8 @@ function jobEditFormHTML(j) {
 function updateJob(id) {
   const date = document.getElementById('jobDate').value;
   if (!date) { toast('⚠️ Select a scheduled date'); return; }
+  const isRecurring = document.getElementById('jobRecurring') && document.getElementById('jobRecurring').checked;
+  const recurringFrequency = isRecurring && document.getElementById('jobFrequency') ? document.getElementById('jobFrequency').value : null;
   formOpen = false;
   db.collection('jobs').doc(id).update({
     trade: document.getElementById('jobTrade').value,
@@ -1347,6 +1468,7 @@ function updateJob(id) {
     scheduledTime: document.getElementById('jobTime').value,
     purpose: document.getElementById('jobPurpose').value.trim(),
     notes: document.getElementById('jobNotes').value.trim(),
+    isRecurring: !!isRecurring, recurringFrequency: recurringFrequency || null,
     updatedBy: currentUserName, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }).then(() => { toast('Job updated ✓'); openJobDetail(id); });
 }
@@ -1365,7 +1487,7 @@ let creatingInvoiceFromQuoteId = null; // set when the builder is finalizing a b
 // Lead technician: first hour is automatic/included, you only enter hours AFTER that first hour.
 function leadLabourCost(additionalHours) {
   additionalHours = Math.max(0, Number(additionalHours) || 0);
-  return PLUMBING_LABOUR_FIRST_HOUR + additionalHours * PLUMBING_LABOUR_ADDL_HOUR;
+  return currentRates.firstHour + additionalHours * currentRates.addlHour;
 }
 // Helper: own hours, own manually-set hourly rate, no first-hour premium.
 function helperLabourCost(hours, rate) {
@@ -1428,7 +1550,7 @@ function quoteBuilderHTML(jobId) {
 
     <div class="card">
       <h2>🔧 Plumbing Labour — Lead Tech</h2>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">First hour ($${PLUMBING_LABOUR_FIRST_HOUR}) is automatic — just enter additional hours.</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">First hour ($${currentRates.firstHour}) is automatic — enter additional hours at $${currentRates.addlHour}/hr.</div>
       ${leadLines.map(({li,i}) => `
         <div class="line-item-row" style="grid-template-columns:1fr 90px 26px;">
           <div style="font-size:13px;color:#555;">Technician</div>
@@ -2013,6 +2135,21 @@ function renderSettingsTab() {
     </div>
 
     <div class="card">
+      <h2>Labour Rates</h2>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Default rates used when creating a new quote. Always overridable per quote.</div>
+      ${['Jake','Doug'].map(name => {
+        const def = DEFAULT_RATES[name];
+        return `
+        <div class="subhead">${name === 'Jake' ? '🔧 Jake (Plumbing)' : '🌿 Doug (Irrigation)'}</div>
+        <div class="row2" style="margin-bottom:8px;">
+          <div class="form-group"><label class="field-label">First Hour</label><input id="rate_${name}_first" type="number" value="${def.firstHour}"></div>
+          <div class="form-group"><label class="field-label">Add'l Hour</label><input id="rate_${name}_addl" type="number" value="${def.addlHour}"></div>
+        </div>
+        <button class="pill-btn" onclick="saveLabourRates('${name}')" style="margin-bottom:8px;">Save ${name}'s Rates</button>`;
+      }).join('')}
+    </div>
+
+    <div class="card">
       <h2>Notifications</h2>
       ${[['jobAdded','Job added alerts'],['statusChange','Status change alerts'],['overdueInvoice','Overdue invoice alerts'],['lowStock','Low stock alerts']].map(([k,l]) => `
         <div class="toggle-row"><span>${l}</span>
@@ -2070,6 +2207,115 @@ function deleteInventoryItem(id) {
   if (!confirm('Delete this inventory item?')) return;
   db.collection('inventory').doc(id).delete();
 }
+
+// ── DUPLICATE JOB ──
+function duplicateJob(id) {
+  const j = jobs.find(x => x._id === id);
+  if (!j) return;
+  formOpen = true;
+  jobsView = 'add';
+  activeJobId = null;
+  jobNewCustomerMode = false;
+  // Render the form then pre-fill fields from the source job
+  renderJobsTab();
+  switchTabUI('jobs');
+  setTimeout(() => {
+    const sel = document.getElementById('jobCustomerId');
+    if (sel) sel.value = j.customerId || '';
+    const addrEl = document.getElementById('jobCustomerAddr');
+    if (addrEl) addrEl.value = j.customerAddress || '';
+    const tradeEl = document.getElementById('jobTrade');
+    if (tradeEl) tradeEl.value = j.trade;
+    const assignEl = document.getElementById('jobAssignedTo');
+    if (assignEl) assignEl.value = j.assignedTo;
+    const purposeEl = document.getElementById('jobPurpose');
+    if (purposeEl) purposeEl.value = j.purpose || '';
+    const notesEl = document.getElementById('jobNotes');
+    if (notesEl) notesEl.value = j.notes || '';
+    const recurEl = document.getElementById('jobRecurring');
+    if (recurEl) {
+      recurEl.checked = !!j.isRecurring;
+      const freqDiv = document.getElementById('jobRecurFreq');
+      if (freqDiv) freqDiv.style.display = recurEl.checked ? 'block' : 'none';
+      const freqEl = document.getElementById('jobFrequency');
+      if (freqEl && j.recurringFrequency) freqEl.value = j.recurringFrequency;
+    }
+    toast('Duplicated — update the date and save');
+  }, 50);
+}
+
+// ── COMPLETION SUMMARY GENERATOR ──
+function generateJobSummary(id) {
+  const j = jobs.find(x => x._id === id);
+  if (!j) return;
+  const parts = (j.partsUsed||[]).map(p => `${p.name} × ${p.quantity}`).join(', ') || 'No parts recorded';
+  const inv = invoices.find(x => x._id === j.invoiceId);
+  const totalStr = inv ? `$${Number(inv.total||0).toFixed(2)}` : 'See invoice';
+  const summary = `Work completed on ${fmtDate(j.scheduledDate)} at ${j.customerAddress||j.customerName}: ${j.purpose||'Service call'}. Parts used: ${parts}. Total: ${totalStr}. — Leo's Plumbing and Irrigation`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(summary).then(() => toast('Summary copied to clipboard ✓')).catch(() => fallbackCopySummary(summary));
+  } else {
+    fallbackCopySummary(summary);
+  }
+}
+function fallbackCopySummary(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  ta.remove();
+  toast('Summary copied ✓');
+}
+
+// ── SMS TEXT TEMPLATES ──
+function sendTemplate(templateId, customerId) {
+  const t = MESSAGE_TEMPLATES.find(x => x.id === templateId);
+  if (!t) return;
+  const c = customers.find(x => x._id === customerId);
+  if (!c || !c.phone) { toast('⚠️ No phone number on file for this customer'); return; }
+  let msg = t.text.replace(/\{customerName\}/g, c.name).replace(/\{techName\}/g, currentUserName);
+  if (msg.includes('{eta}')) {
+    const eta = prompt('ETA in minutes?');
+    if (eta === null) return;
+    msg = msg.replace(/\{eta\}/g, eta);
+  }
+  window.location.href = `sms:${c.phone}&body=${encodeURIComponent(msg)}`;
+}
+
+// ── LABOUR RATES SETTINGS ──
+function saveLabourRates(userName) {
+  const firstHour = Number(document.getElementById(`rate_${userName}_first`).value);
+  const addlHour  = Number(document.getElementById(`rate_${userName}_addl`).value);
+  if (!firstHour || !addlHour) { toast('⚠️ Enter valid rates'); return; }
+  db.collection('settings').doc(userName).set({ firstHourRate: firstHour, addlHourRate: addlHour }, { merge: true })
+    .then(() => {
+      if (userName === currentUserName) { currentRates.firstHour = firstHour; currentRates.addlHour = addlHour; }
+      toast(`${userName}'s rates saved ✓`);
+    }).catch(e => toast('❌ ' + e.message));
+}
+
+// ── SWIPE-TO-DELETE ──
+(function initSwipe() {
+  let startX = 0, startY = 0, swipeEl = null;
+  document.addEventListener('touchstart', e => {
+    const el = e.target.closest('.swipeable');
+    if (!el) return;
+    swipeEl = el;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (!swipeEl) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && dx < 0) {
+      const delBtn = swipeEl.querySelector('.swipe-del-btn');
+      if (delBtn) delBtn.classList.toggle('visible');
+    }
+    swipeEl = null;
+  }, { passive: true });
+})();
 
 // ── SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
